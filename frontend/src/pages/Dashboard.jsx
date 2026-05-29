@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/axios';
-import { FileText, CheckCircle, XCircle, Clock, User, Home, DoorOpen, ArrowRight, AlertCircle, Edit3, Save, Download, Loader2, MessageCircle } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Clock, User, DoorOpen, ArrowRight, AlertCircle, Edit3, Download, MessageCircle, Phone, MapPin, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import html2pdf from 'html2pdf.js';
@@ -15,21 +15,13 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const [loadingRoom, setLoadingRoom] = useState(false);
-  const [roomError, setRoomError] = useState('');
-  const [roomSuccess, setRoomSuccess] = useState('');
-
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ phone: '', address: '', city: '' });
   const [profileSaving, setProfileSaving] = useState(false);
 
-  // États du Chat Support
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchStatus = React.useCallback(async () => {
     try {
       const response = await api.get('/applications/my-status');
       setStatusData(response.data);
@@ -43,80 +35,13 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchStatus();
-    const img1 = new Image(); img1.src = '/logo_lycee.jpg';
-    const img2 = new Image(); img2.src = '/logo_maroc.png';
-  }, [navigate]);
+  }, [fetchStatus]);
 
-  const fetchMessages = async () => {
-    if (!statusData?.application?.id) return;
-    try {
-      const res = await api.get(`/applications/${statusData.application.id}/messages`);
-      setMessages(res.data);
-    } catch (err) {
-      console.error("Échec du chargement des messages", err);
-    }
-  };
 
-  useEffect(() => {
-    if (statusData?.application?.id) {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [statusData?.application?.id]);
-
-  useEffect(() => {
-    const handleNotifClick = (e) => {
-      if (e.detail.type === 'message') {
-        const chatContainer = document.getElementById('chat-messages-container');
-        if (chatContainer) {
-          chatContainer.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    };
-    window.addEventListener('notification-click', handleNotifClick);
-    return () => window.removeEventListener('notification-click', handleNotifClick);
-  }, []);
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !statusData?.application?.id) return;
-    setChatLoading(true);
-    try {
-      const res = await api.post(`/applications/${statusData.application.id}/messages`, { message: newMessage });
-      setMessages(prev => [...prev, res.data]);
-      setNewMessage('');
-      const chatContainer = document.getElementById('chat-messages-container');
-      if (chatContainer) {
-        setTimeout(() => { chatContainer.scrollTop = chatContainer.scrollHeight; }, 100);
-      }
-    } catch (err) {
-      toast.error("Échec de l'envoi du message.");
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const handleAutoAssign = async (e) => {
-    e.preventDefault();
-    setLoadingRoom(true);
-    setRoomError('');
-    try {
-      await api.post(`/rooms/auto-assign`);
-      toast.success("Chambre attribuée avec succès !");
-      fetchStatus();
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || "Échec de l'attribution de la chambre.";
-      setRoomError(errMsg);
-      toast.error(errMsg);
-    } finally {
-      setLoadingRoom(false);
-    }
-  };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -126,9 +51,8 @@ const Dashboard = () => {
       setEditingProfile(false);
       toast.success("Profil mis à jour avec succès !");
       fetchStatus();
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || "Échec de la mise à jour du profil.";
-      toast.error(errMsg);
+    } catch {
+      toast.error("Échec de la mise à jour du profil.");
     } finally {
       setProfileSaving(false);
     }
@@ -150,336 +74,352 @@ const Dashboard = () => {
     };
     html2pdf().set(opt).from(element).save()
       .then(() => toast.success("Attestation téléchargée avec succès !", { id: loadingToast }))
-      .catch((err) => { console.error(err); toast.error("Erreur de génération PDF", { id: loadingToast }); });
+      .catch(() => { toast.error("Erreur de génération PDF", { id: loadingToast }); });
   };
 
-  if (loading) return <div className="loader-container"><div className="spinner"></div></div>;
-  if (error) return <div className="container dashboard-page"><div className="alert alert-danger" style={{ maxWidth: '600px', margin: '0 auto' }}>{error}</div></div>;
+  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
+  if (error) return <div className="container mx-auto px-6 py-12 text-center"><div className="alert alert-danger max-w-md mx-auto">{error}</div></div>;
 
   const { application, profile, message } = statusData || {};
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'approved': return <span className="badge badge-approved"><CheckCircle size={14} /> {t("approved")}</span>;
-      case 'rejected': return <span className="badge badge-rejected"><XCircle size={14} /> {t("rejected")}</span>;
-      case 'incomplete': return <span className="badge badge-incomplete"><AlertCircle size={14} /> {t("incomplete")}</span>;
-      case 'waitlisted': return <span className="badge badge-waitlisted"><Clock size={14} /> {t("waitlisted")}</span>;
-      case 'pending': default: return <span className="badge badge-pending"><Clock size={14} /> {t("pending")}</span>;
+      case 'approved': return <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"><CheckCircle size={14} className="mr-1" /> {t("approved")}</span>;
+      case 'rejected': return <span className="badge bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800"><XCircle size={14} className="mr-1" /> {t("rejected")}</span>;
+      case 'incomplete': return <span className="badge bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 border border-pink-200 dark:border-pink-800"><AlertCircle size={14} className="mr-1" /> {t("incomplete")}</span>;
+      case 'waitlisted': return <span className="badge bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800"><Clock size={14} className="mr-1" /> {t("waitlisted")}</span>;
+      case 'pending': default: return <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800"><Clock size={14} className="mr-1" /> {t("pending")}</span>;
     }
   };
 
   const steps = application ? [
-    { id: 1, label: 'Soumission', desc: 'Dossier déposé avec succès', active: true, completed: true },
-    { id: 2, label: 'Examen académique', desc: application.status === 'incomplete' ? 'Correction requise' : 'Analyse du dossier', active: application.status === 'pending' || application.status === 'incomplete', completed: ['approved', 'rejected', 'waitlisted'].includes(application.status) },
-    { id: 3, label: 'Décision finale', desc: application.status === 'approved' ? 'Approuvé !' : application.status === 'rejected' ? 'Rejeté' : application.status === 'waitlisted' ? 'Liste d\'attente' : 'En attente', active: ['approved', 'rejected', 'waitlisted'].includes(application.status) && !application.room, completed: ['approved', 'rejected'].includes(application.status) },
-    { id: 4, label: 'Chambre', desc: application.room ? `Affecté (Ch. ${application.room.room_number})` : 'En attente d\'affectation', active: application.status === 'approved' && !application.room, completed: !!application.room },
-    { id: 5, label: 'Admission validée', desc: application.room ? 'Processus finalisé !' : 'Rentrée d\'internat', active: !!application.room, completed: !!application.room }
+    { id: 1, label: 'Soumission', completed: true },
+    { id: 2, label: 'Examen', completed: ['approved', 'rejected', 'waitlisted'].includes(application.status), active: application.status === 'pending' || application.status === 'incomplete' },
+    { id: 3, label: 'Décision', completed: ['approved', 'rejected'].includes(application.status), active: ['approved', 'rejected', 'waitlisted'].includes(application.status) },
+    { id: 4, label: 'Chambre', completed: !!application.room, active: application.status === 'approved' && !application.room },
+    { id: 5, label: 'Finalisé', completed: !!application.room, active: !!application.room }
   ] : [];
 
   return (
-    <div className="container dashboard-page animate-up">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
-        <motion.div initial={{ rotate: -10, scale: 0.9 }} animate={{ rotate: 0, scale: 1 }} style={{ padding: '1.1rem', background: 'var(--gradient-main)', borderRadius: '18px', color: 'white', boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)' }}>
-          <Home size={32} />
-        </motion.div>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '2.2rem', fontWeight: '900' }}>{t("dashboard_title")}</h1>
-          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '1.05rem' }}>{t("welcome")}, {profile?.full_name || ''}</p>
+    <div className="container mx-auto px-6 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-gradient-main rounded-2xl text-white shadow-xl shadow-blue-500/20">
+            <GraduationCap size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-extrabold">{t("dashboard_title")}</h1>
+            <p className="text-slate-500 dark:text-slate-400">{t("welcome")}, {profile?.full_name || 'Étudiant'}</p>
+          </div>
         </div>
+
+        {!application && (
+             <Link to="/apply" className="btn btn-primary px-8 group">
+                {t("start_application") || "Commencer ma candidature"}
+                <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+             </Link>
+        )}
       </div>
 
       {application && (
-        <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderTop: '4px solid var(--primary)', borderRadius: '16px' }}>
-          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
-            <Clock size={20} style={{ color: 'var(--primary)' }} /> Suivi en temps réel de votre admission
+        <div className="glass-panel p-8 mb-10 overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
+          <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+            <Clock size={20} className="text-blue-600" />
+            {t("tracking_title") || "Suivi de votre dossier"}
           </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem', position: 'relative' }}>
-            {steps.map((step, idx) => (
-              <div key={step.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '1 1 150px', textAlign: 'center', minWidth: '120px', position: 'relative', zIndex: 1 }}>
-                {idx < steps.length - 1 && <div style={{ position: 'absolute', top: '20px', left: '50%', width: '100%', height: '2px', background: step.completed ? '#10b981' : 'var(--card-border)', zIndex: -1 }} />}
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: step.completed ? '#d1fae5' : step.active && !step.completed ? 'rgba(79, 70, 229, 0.1)' : 'var(--bg-alt)', border: `2px solid ${step.completed ? '#10b981' : step.active && !step.completed ? 'var(--primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: step.completed ? '#10b981' : step.active && !step.completed ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.95rem', marginBottom: '0.75rem', boxShadow: step.active && !step.completed ? '0 0 0 4px rgba(79, 70, 229, 0.15)' : 'none' }}>
-                  {step.completed ? '✓' : step.id}
+
+          <div className="relative flex justify-between items-start max-w-4xl mx-auto">
+            {/* Connection Line */}
+            <div className="absolute top-5 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-700 -z-10"></div>
+
+            {steps.map((step) => (
+              <div key={step.id} className="flex flex-col items-center text-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-500 border-2 ${
+                  step.completed
+                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                    : step.active
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+                      : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'
+                }`}>
+                  {step.completed ? <CheckCircle size={20} /> : step.id}
                 </div>
-                <div style={{ fontWeight: '600', fontSize: '0.9rem', color: step.completed || (step.active && !step.completed) ? 'var(--text-main)' : 'var(--text-muted)', marginBottom: '0.2rem' }}>{step.label}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '140px', margin: '0 auto' }}>{step.desc}</div>
+                <span className={`mt-3 text-sm font-bold ${step.completed || step.active ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                  {step.label}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="dashboard-grid">
-        <div className="glass-panel dash-card" style={{ borderTop: '4px solid var(--primary)', overflow: 'hidden' }}>
-          <div className="dash-header" style={{ background: 'rgba(99, 102, 241, 0.03)', borderBottom: '1px solid var(--card-border)' }}>
-            <FileText size={22} style={{ color: 'var(--primary)' }} /> <h3 style={{ fontWeight: '800' }}>{t("admission_status")}</h3>
-          </div>
-          <div className="dash-body">
-            {!application ? (
-              <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-                <div style={{ width: '80px', height: '80px', background: 'var(--bg-alt)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--primary)' }}><FileText size={40} /></div>
-                <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-muted)' }}>{message || "Aucune candidature soumise pour le moment."}</p>
-                <Link to="/apply" className="btn btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1.1rem' }}>Soumettre ma Candidature <ArrowRight size={18} /></Link>
-              </div>
-            ) : (
-              <div>
-                <div className="status-row" style={{ padding: '1rem', background: 'var(--bg-alt)', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <span className="status-label" style={{ fontWeight: '600', margin: 0 }}>Statut Actuel</span>
-                    {getStatusBadge(application.status)}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Main Status */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="glass-panel overflow-hidden">
+            <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+              <h3 className="font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                <FileText size={20} className="text-blue-600" />
+                {t("application_details") || "Détails de la Candidature"}
+              </h3>
+              {application && getStatusBadge(application.status)}
+            </div>
+
+            <div className="p-8">
+              {!application ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <FileText size={40} />
                   </div>
-                  {application.status === 'approved' && (
-                    <button onClick={handleDownloadPDF} className="btn" style={{ padding: '0.5rem 1.2rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10b981', borderColor: '#10b981', color: '#fff', fontWeight: '600', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}><Download size={16} /> Télécharger mon Attestation</button>
+                  <p className="text-lg text-slate-500 mb-8">{message || "Aucune candidature soumise pour le moment."}</p>
+                  <Link to="/apply" className="btn btn-primary px-10 py-3 font-bold">
+                    Soumettre ma Candidature
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                   {application.status === 'incomplete' && (
+                    <div className="p-5 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 rounded-xl">
+                      <div className="flex items-center gap-3 text-pink-700 dark:text-pink-400 font-bold mb-2">
+                        <AlertCircle size={20} /> Action Requise
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm italic">&ldquo;{application.admin_feedback}&rdquo;</p>
+                    </div>
                   )}
-                  {(['pending', 'rejected', 'incomplete'].includes(application.status)) && (
-                    <Link to="/apply?edit=true" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FileText size={16} /> {application.status === 'rejected' ? 'Ré-appliquer' : application.status === 'incomplete' ? 'Corriger mon dossier' : 'Modifier ma candidature'}
-                    </Link>
-                  )}
-                </div>
 
-                {application.status === 'incomplete' && (
-                  <div className="alert alert-danger" style={{ display: 'block', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}><AlertCircle size={18} /> Action administrative requise</div>
-                    <p style={{ margin: 0, color: 'inherit' }}>Votre dossier a été marqué comme <strong>incomplet</strong>. Veuillez corriger l'élément signalé :</p>
-                    <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '0.75rem 1rem', borderRadius: '8px', borderLeft: '4px solid var(--danger)', marginTop: '0.75rem', fontWeight: '500' }}>&ldquo;{application.admin_feedback || "Veuillez vérifier vos documents."}&rdquo;</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Type d'Étudiant</p>
+                      <p className="text-lg font-bold">{application.student_type}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Moyenne Académique</p>
+                      <p className="text-lg font-bold text-blue-600">{parseFloat(application.grade_average).toFixed(2)} / 20</p>
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Filière / Spécialité</p>
+                      <p className="text-lg font-bold">{application.filière || application.filiere}</p>
+                    </div>
                   </div>
-                )}
 
-                <div className="status-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                  <div><span className="status-label">Type d'étudiant</span><span className="status-value">{application.student_type}</span></div>
-                  <div><span className="status-label">Moyenne</span><span className="status-value">{application.grade_average}/20</span></div>
-                  <div style={{ gridColumn: '1 / -1' }}><span className="status-label">Filière</span><span className="status-value">{application.filière || application.filiere}</span></div>
-                  <div style={{ gridColumn: '1 / -1' }}><span className="status-label">Soumis le</span><span className="status-value">{new Date(application.submitted_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
-                </div>
-
-                <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '2rem' }}>
-                  <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: '600' }}><Clock size={20} style={{ color: 'var(--primary)' }} /> Historique des étapes</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {application.history?.length > 0 ? (
-                      application.history.map((h, idx) => (
-                        <div key={h.id} style={{ display: 'flex', gap: '1.25rem', position: 'relative' }}>
-                          {idx < application.history.length - 1 && <div style={{ position: 'absolute', left: '8px', top: '20px', bottom: '-20px', width: '2px', background: 'linear-gradient(to bottom, var(--primary), transparent)', opacity: 0.2 }} />}
-                          <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: idx === 0 ? 'var(--primary)' : '#fff', border: `4px solid ${idx === 0 ? 'rgba(79, 70, 229, 0.2)' : 'var(--primary)'}`, flexShrink: 0, zIndex: 1, marginTop: '4px' }} />
-                          <div style={{ flex: 1, background: 'rgba(255, 255, 255, 0.4)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: '700', textTransform: 'capitalize', color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                                {h.status === 'approved' ? 'Approuvée' : h.status === 'rejected' ? 'Rejetée' : h.status === 'incomplete' ? 'Incomplet' : h.status === 'waitlisted' ? 'Liste d\'Attente' : 'Soumission'}
-                              </span>
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</span>
-                            </div>
-                            {h.comment && <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>&ldquo;{h.comment}&rdquo;</p>}
-                          </div>
-                        </div>
-                      ))
-                    ) : <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun historique.</div>}
+                  <div className="flex flex-wrap gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+                    {application.status === 'approved' && (
+                       <button onClick={handleDownloadPDF} className="btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
+                          <Download size={18} className="mr-2" /> Télécharger l'Attestation
+                       </button>
+                    )}
+                    {['pending', 'rejected', 'incomplete'].includes(application.status) && (
+                      <Link to="/apply?edit=true" className="btn btn-outline border-blue-200 hover:border-blue-600 group">
+                        <Edit3 size={18} className="mr-2" />
+                        {application.status === 'rejected' ? 'Ré-appliquer' : 'Modifier mon dossier'}
+                      </Link>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+
+          {/* Timeline / History */}
+          {application?.history?.length > 0 && (
+            <div className="glass-panel p-8">
+               <h3 className="font-bold mb-6 flex items-center gap-2">
+                 <Clock size={20} className="text-blue-600" /> Historique des Décisions
+               </h3>
+               <div className="space-y-6 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
+                  {application.history.map((h, i) => (
+                    <div key={h.id} className="relative pl-8">
+                       <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${i === 0 ? 'bg-blue-600 scale-125' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                       <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold capitalize">{h.status === 'approved' ? 'Approuvée' : h.status}</span>
+                          <span className="text-xs text-slate-400">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                       </div>
+                       {h.comment && <p className="text-sm text-slate-500 italic">&ldquo;{h.comment}&rdquo;</p>}
+                    </div>
+                  ))}
+               </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Right Column - Profile & Room */}
+        <div className="space-y-8">
+          {/* Room Assignment Card */}
           {application?.status === 'approved' && (
-            <div className="glass-panel dash-card delay-1" style={{ borderTop: '4px solid #10b981' }}>
-              <div className="dash-header"><DoorOpen size={24} style={{ color: '#10b981' }} /> <h3>{t("room_assignment")}</h3></div>
-              <div className="dash-body">
-                {application.room ? (
-                  <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-                    <div style={{ width: '70px', height: '70px', background: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: '#10b981' }}><CheckCircle size={36} /></div>
-                    <h2 style={{ margin: '0 0 0.5rem 0', color: '#065f46', fontSize: '2rem' }}>{application.room.room_number}</h2>
-                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>Vous avez été affecté(e) à cette chambre.</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="alert alert-success" style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>Félicitations ! Votre dossier est approuvé.</div>
-                    <div className="bg-gray-50 p-4 rounded-xl mb-4 border border-gray-100">
-                      <p className="text-sm font-bold text-gray-700 mb-2">Frais d'inscription requis</p>
-                      <p className="text-xs text-gray-500 mb-3">Veuillez régler vos frais d'admission (500 MAD) pour finaliser votre inscription et obtenir votre chambre.</p>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await api.post('/payments/create-checkout-session');
-                            window.location.href = res.data.checkout_url;
-                          } catch (err) {
-                            toast.error("Échec de l'initialisation du paiement");
-                          }
-                        }}
-                        className="btn btn-primary w-full py-3"
-                      >
-                        Payer les frais via Stripe
-                      </button>
+            <div className="glass-panel overflow-hidden border-t-4 border-emerald-500">
+               <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 flex items-center gap-3">
+                  <DoorOpen className="text-emerald-600" />
+                  <h3 className="font-bold">{t("room_assignment")}</h3>
+               </div>
+               <div className="p-8 text-center">
+                  {application.room ? (
+                    <>
+                      <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle size={40} />
+                      </div>
+                      <p className="text-sm text-slate-500 mb-1">Votre Numéro de Chambre</p>
+                      <h2 className="text-5xl font-black text-emerald-600 mb-2">{application.room.room_number}</h2>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Affectation Validée</p>
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                       <div className="alert bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400">
+                          Paiement des frais requis pour obtenir une chambre.
+                       </div>
+                       <button
+                         onClick={async () => {
+                           try {
+                             const res = await api.post('/payments/create-checkout-session');
+                             window.location.href = res.data.checkout_url;
+                           } catch (err) { toast.error("Échec de l'initialisation du paiement"); }
+                         }}
+                         className="btn btn-primary w-full py-3"
+                       >
+                         Payer 500 MAD (Stripe)
+                       </button>
                     </div>
-                    {roomError && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{roomError}</div>}
-                    <form onSubmit={handleAutoAssign}><button type="submit" className="btn btn-primary" style={{ width: '100%', background: '#10b981', border: 'none', opacity: 0.5 }} disabled={true}>Obtenir ma Chambre (Paiement requis)</button></form>
-                  </div>
-                )}
-              </div>
+                  )}
+               </div>
             </div>
           )}
 
-          <div className="glass-panel dash-card delay-2">
-            <div className="dash-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><User size={24} style={{ color: 'var(--primary)' }} /> <h3>{t("profile")}</h3></div>
-              {profile && !editingProfile && <button className="btn-text" onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }}><Edit3 size={16} /> Modifier</button>}
+          {/* Profile Card */}
+          <div className="glass-panel overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="font-bold flex items-center gap-2">
+                <User size={20} className="text-blue-600" /> Profil
+              </h3>
+              {!editingProfile && profile && (
+                <button onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }} className="text-xs font-bold text-blue-600 hover:underline">
+                  Modifier
+                </button>
+              )}
             </div>
-            <div className="dash-body">
-              {profile ? editingProfile ? (
-                <form onSubmit={handleProfileUpdate} style={{ display: 'grid', gap: '1rem' }}>
-                  <div><label className="form-label">Téléphone</label><input type="text" className="form-input" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} required /></div>
-                  <div><label className="form-label">Adresse</label><input type="text" className="form-input" value={profileForm.address} onChange={e => setProfileForm({ ...profileForm, address: e.target.value })} required /></div>
-                  <div><label className="form-label">Ville</label><input type="text" className="form-input" value={profileForm.city} onChange={e => setProfileForm({ ...profileForm, city: e.target.value })} required /></div>
-                  <div style={{ display: 'flex', gap: '1rem' }}><button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setEditingProfile(false)}>Annuler</button><button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={profileSaving}>{profileSaving ? 'Enregistrement...' : 'Enregistrer'}</button></div>
+
+            <div className="p-6">
+              {editingProfile ? (
+                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                   <div>
+                     <label className="form-label">Téléphone</label>
+                     <input type="text" className="form-input" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
+                   </div>
+                   <div>
+                     <label className="form-label">Adresse</label>
+                     <input type="text" className="form-input" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
+                   </div>
+                   <div className="flex gap-3 pt-2">
+                      <button type="button" onClick={() => setEditingProfile(false)} className="btn btn-outline flex-1 py-2 text-sm">Annuler</button>
+                      <button type="submit" disabled={profileSaving} className="btn btn-primary flex-1 py-2 text-sm">
+                        {profileSaving ? '...' : 'Enregistrer'}
+                      </button>
+                   </div>
                 </form>
               ) : (
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  <div><p className="status-label">Nom Complet</p><p className="status-value">{profile.full_name}</p></div>
-                  <div><p className="status-label">Téléphone</p><p className="status-value">{profile.phone}</p></div>
-                  <div><p className="status-label">Ville/Province</p><p className="status-value">{profile.city} / {profile.province}</p></div>
+                <div className="space-y-5">
+                  <div className="flex items-start gap-3">
+                    <User className="text-slate-400 mt-0.5" size={18} />
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Nom Complet</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.full_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Phone className="text-slate-400 mt-0.5" size={18} />
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Téléphone</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.phone || 'Non renseigné'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="text-slate-400 mt-0.5" size={18} />
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Ville / Province</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.city} / {profile?.province}</p>
+                    </div>
+                  </div>
                 </div>
-              ) : <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}><p>Profil non complété.</p></div>}
+              )}
             </div>
+          </div>
+
+          {/* Help Card */}
+          <div className="glass-panel p-6 bg-blue-600 text-white">
+             <h4 className="font-bold mb-2 flex items-center gap-2">
+                <MessageCircle size={20} /> Besoin d'aide ?
+             </h4>
+             <p className="text-sm text-blue-100 mb-4 leading-relaxed">
+                Notre équipe administrative est disponible pour répondre à toutes vos questions concernant votre admission.
+             </p>
+             <button onClick={() => setIsChatOpen(true)} className="w-full btn bg-white text-blue-600 hover:bg-blue-50 py-2.5 font-bold">
+                Ouvrir le Support
+             </button>
           </div>
         </div>
       </div>
 
-      {application && (
-        <div className="glass-panel dash-card" style={{ borderTop: '4px solid var(--secondary)', marginTop: '2rem', padding: 0, overflow: 'hidden' }}>
-          <div className="dash-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)', padding: '1rem 2rem', borderBottom: '1px solid var(--card-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><MessageCircle size={24} style={{ color: 'var(--secondary)' }} /> <h3 style={{ margin: 0 }}>{t("chat_support")}</h3></div>
-            <span className="badge" style={{ background: 'rgba(124, 58, 237, 0.1)', color: 'var(--secondary)' }}>🛡️ Administration Directe</span>
-          </div>
-          <div className="dash-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '400px', padding: '1.5rem' }}>
-            <div id="chat-messages-container" style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'var(--bg-color)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.75rem', border: '1px solid var(--card-border)' }}>
-              {messages.length === 0 ? <p style={{ textAlign: 'center', fontStyle: 'italic', color: 'var(--text-muted)' }}>Posez vos questions ici !</p> : messages.map(msg => (
-                <div key={msg.id} style={{ alignSelf: msg.sender_role === 'admin' ? 'flex-start' : 'flex-end', maxWidth: '75%' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{msg.sender_role === 'admin' ? '🛡️ Administration' : 'Moi'}</div>
-                  <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: msg.sender_role === 'admin' ? 'var(--card-bg)' : 'linear-gradient(135deg, var(--primary), var(--secondary))', color: msg.sender_role === 'admin' ? 'var(--text-main)' : '#fff', border: '1px solid var(--card-border)' }}>{msg.message}</div>
-                </div>
-              ))}
-            </div>
-            <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.75rem' }}><input type="text" className="form-input" placeholder="Écrivez ici..." value={newMessage} onChange={e => setNewMessage(e.target.value)} style={{ marginBottom: 0, flex: 1 }} required /><button type="submit" className="btn btn-primary" style={{ padding: '0.8rem 1.5rem' }} disabled={chatLoading}>Envoyer</button></form>
-          </div>
-        </div>
-      )}
-
-      {/* Modèle d'Attestation PDF (Caché pour html2pdf) */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-        <div id="attestation-pdf-template" style={{
-          width: '700px',
-          padding: '50px',
-          color: '#1a1a1a',
-          fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-          lineHeight: '1.6'
-        }}>
-          {/* En-tête */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #1e3a8a', paddingBottom: '20px', marginBottom: '40px' }}>
-            <img src="/logo_maroc.png" alt="Royaume du Maroc" style={{ height: '90px' }} />
-            <div style={{ textAlign: 'center' }}>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>Royaume du Maroc</h2>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '12px' }}>Ministère de l'Éducation Nationale du Préscolaire et des Sports</h2>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '12px' }}>Académie Régionale de l'Éducation et de la Formation</h2>
-              <h3 style={{ margin: '10px 0 0 0', fontSize: '15px', color: '#1e3a8a', fontWeight: '900' }}>Lycée Technique - Service Internat</h3>
-            </div>
-            <img src="/logo_lycee.jpg" alt="Logo Lycée" style={{ height: '90px' }} />
-          </div>
-
-          {/* Titre */}
-          <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-            <h1 style={{
-              fontSize: '32px',
-              color: '#1e3a8a',
-              textDecoration: 'underline',
-              fontWeight: '900',
-              letterSpacing: '1px'
-            }}>ATTESTATION D'ADMISSION</h1>
-            <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>Année Universitaire : 2026/2027</p>
-          </div>
-
-          {/* Corps de l'attestation */}
-          <div style={{ fontSize: '18px', marginBottom: '60px' }}>
-            <p style={{ marginBottom: '25px' }}>Le Directeur du Lycée Technique certifie par la présente que l'étudiant(e) :</p>
-
-            <div style={{ background: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr>
-                    <td style={{ padding: '8px 0', color: '#64748b', width: '30%' }}>Nom Complet :</td>
-                    <td style={{ padding: '8px 0', fontWeight: 'bold', fontSize: '20px' }}>{profile?.full_name || '................................................'}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '8px 0', color: '#64748b' }}>C.I.N :</td>
-                    <td style={{ padding: '8px 0', fontWeight: 'bold' }}>{profile?.cin || '...........................'}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '8px 0', color: '#64748b' }}>N° Téléphone :</td>
-                    <td style={{ padding: '8px 0', fontWeight: 'bold' }}>{profile?.phone || '...........................'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p style={{ marginBottom: '25px' }}>Est officiellement admis(e) au service d'internat dans la filière :</p>
-
-            <div style={{ borderLeft: '5px solid #1e3a8a', padding: '15px 25px', background: 'rgba(30, 58, 138, 0.03)', marginBottom: '30px' }}>
-              <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: '#1e3a8a' }}>{application?.filière || application?.filiere}</p>
-              <p style={{ fontSize: '14px', color: '#666', margin: '5px 0 0 0' }}>Type d'admission : {application?.student_type}</p>
-            </div>
-
-            {application?.room && (
-              <p style={{ marginBottom: '25px' }}>
-                Numéro de chambre affecté : <strong style={{ color: '#059669', fontSize: '22px' }}>{application.room.room_number}</strong>
-              </p>
-            )}
-
-            <p style={{ marginTop: '40px', fontSize: '16px', fontStyle: 'italic', textAlign: 'justify' }}>
-              Cette attestation est délivrée pour valoir ce que de droit, sous réserve de la validation finale des documents originaux lors de la rentrée scolaire.
-            </p>
-          </div>
-
-          {/* Signature */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '80px' }}>
-            <div style={{ fontSize: '15px' }}>
-              <p>Fait à : <strong>Beni Mellal</strong></p>
-              <p>Le : <strong>{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></p>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: '250px' }}>
-              <p style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: '60px' }}>Cachet et Signature de l'Administration</p>
-              {/* Emplacement pour cachet numérique ou signature */}
-              <div style={{ height: '80px', width: '200px', margin: '0 auto', border: '1px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                Cachet Officiel
+      {/* PDF Template (Hidden) */}
+      <div className="hidden">
+          <div id="attestation-pdf-template" className="p-16 text-slate-900 bg-white" style={{ width: '800px' }}>
+              <div className="flex justify-between items-center border-b-4 border-blue-900 pb-8 mb-12">
+                  <img src="/logo_maroc.png" alt="Logo" className="h-24" />
+                  <div className="text-center">
+                      <h2 className="font-bold text-sm uppercase">Royaume du Maroc</h2>
+                      <h2 className="text-xs">Ministère de l'Éducation Nationale</h2>
+                      <h1 className="text-xl font-black text-blue-900 mt-4">LYCÉE TECHNIQUE MOHAMED V</h1>
+                  </div>
+                  <img src="/logo_lycee.jpg" alt="Logo" className="h-24" />
               </div>
-            </div>
+              <div className="text-center mb-12">
+                  <h1 className="text-3xl font-black underline decoration-blue-600 underline-offset-8">ATTESTATION D'ADMISSION</h1>
+                  <p className="mt-4 text-slate-500 font-bold">Session Académique 2026/2027</p>
+              </div>
+              <div className="space-y-8 text-lg mb-20">
+                  <p>Le Directeur du Lycée Technique certifie que l'étudiant(e) :</p>
+                  <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <table className="w-full">
+                          <tbody>
+                              <tr><td className="py-2 text-slate-500">Nom Complet :</td><td className="py-2 font-black text-xl">{profile?.full_name}</td></tr>
+                              <tr><td className="py-2 text-slate-500">CIN :</td><td className="py-2 font-black">{profile?.cin}</td></tr>
+                              <tr><td className="py-2 text-slate-500">Filière :</td><td className="py-2 font-black text-blue-700">{application?.filière || application?.filiere}</td></tr>
+                          </tbody>
+                      </table>
+                  </div>
+                  <p>Est officiellement admis(e) au service d'internat pour l'année scolaire en cours.</p>
+                  {application?.room && (
+                      <p className="font-bold">Numéro de chambre attribué : <span className="text-emerald-600 text-2xl ml-2">{application.room.room_number}</span></p>
+                  )}
+              </div>
+              <div className="flex justify-between items-end mt-24">
+                  <div className="text-sm">
+                      <p>Fait à Beni Mellal, le</p>
+                      <p className="font-bold">{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </div>
+                  <div className="text-center border-2 border-dashed border-slate-300 p-8 rounded-xl w-64 h-32 flex items-center justify-center text-slate-300 font-bold uppercase text-xs">
+                      Cachet de l'Établissement
+                  </div>
+              </div>
           </div>
-
-          {/* Pied de page */}
-          <div style={{
-            marginTop: '100px',
-            paddingTop: '15px',
-            borderTop: '1px solid #e2e8f0',
-            textAlign: 'center',
-            fontSize: '11px',
-            color: '#94a3b8'
-          }}>
-            Document généré automatiquement le {new Date().toLocaleString()} - Code de vérification : {Math.random().toString(36).substring(2, 10).toUpperCase()}
-          </div>
-        </div>
       </div>
+
       <ChatWindow
         applicationId={application?.id}
         isOpen={statusData?.application?.id && isChatOpen}
         onClose={() => setIsChatOpen(false)}
       />
 
-      {!isChatOpen && statusData?.application?.id && (
+      {/* Floating Chat Button */}
+      {!isChatOpen && application && (
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-2xl hover:scale-110 transition-all z-[100]"
+          className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50 group"
         >
-          <MessageCircle size={24} />
-          {application?.has_new_message && (
-            <span className="absolute top-0 right-0 w-4 height-4 bg-danger rounded-full border-2 border-white animate-pulse" />
+          <MessageCircle size={28} />
+          {application.has_new_message && (
+            <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 border-4 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
           )}
+          <span className="absolute right-full mr-4 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Besoin d'aide ? Chattez avec nous
+          </span>
         </button>
       )}
     </div>

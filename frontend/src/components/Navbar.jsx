@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, GraduationCap, Menu, X } from 'lucide-react';
+import { LogOut, GraduationCap, Menu, X, LayoutDashboard, User, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from './ThemeContext';
 import ThemeToggle from './ThemeToggle';
@@ -27,7 +27,6 @@ const Navbar = () => {
   const location = useLocation();
   const token = localStorage.getItem('token');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isDark } = useTheme();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -47,88 +46,76 @@ const Navbar = () => {
 
   const navLinks = [
     { name: t('home'), path: '/', show: !token },
-    { name: t('student_space'), path: '/dashboard', show: token && role !== 'admin' },
-    { name: t('admin'), path: '/admin', show: token && role === 'admin' },
+    { name: t('student_space'), path: '/dashboard', show: token && role !== 'admin', icon: LayoutDashboard },
+    { name: t('admin'), path: '/admin', show: token && role === 'admin', icon: LayoutDashboard },
   ];
 
   return (
-    <nav className="navbar" style={{ padding: '0.85rem 0' }}>
-      <div className="container nav-content">
-        <Link to="/" className="nav-logo" style={{ textDecoration: 'none' }}>
-          <motion.div
-            whileHover={{ rotate: 15, scale: 1.1 }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-          >
-            <GraduationCap size={32} />
-            <span style={{ fontSize: '1.4rem', letterSpacing: '-0.02em', fontWeight: '900' }}>
-              Internat<span style={{ color: 'var(--primary)', WebkitTextFillColor: 'initial' }}>Hub</span>
-            </span>
-          </motion.div>
+    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50">
+      <div className="container mx-auto px-6 h-20 flex justify-between items-center">
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="p-2 bg-blue-600 rounded-lg text-white group-hover:rotate-6 transition-transform">
+            <GraduationCap size={24} />
+          </div>
+          <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">
+            Internat<span className="text-blue-600">Hub</span>
+          </span>
         </Link>
 
         {/* Desktop Menu */}
-        <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div style={{ display: 'flex', gap: '1.5rem', marginRight: '1rem' }} className="hidden-mobile">
+        <div className="hidden md:flex items-center gap-8">
+          <div className="flex gap-6">
             {navLinks.filter(l => l.show).map(link => (
               <Link
                 key={link.path}
                 to={link.path}
-                className="nav-link"
-                style={{
-                  position: 'relative',
-                  color: location.pathname === link.path ? 'var(--primary)' : 'var(--text-muted)',
-                  transition: 'color 0.3s'
-                }}
+                className={`text-sm font-bold flex items-center gap-2 transition-colors ${
+                  location.pathname === link.path
+                    ? 'text-blue-600'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
+                {link.icon && <link.icon size={18} />}
                 {link.name}
-                {location.pathname === link.path && (
-                  <motion.div
-                    layoutId="activeNav"
-                    style={{
-                      position: 'absolute',
-                      bottom: '-6px',
-                      left: 0,
-                      right: 0,
-                      height: '2px',
-                      background: 'var(--primary)',
-                      borderRadius: '2px'
-                    }}
-                  />
-                )}
               </Link>
             ))}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <LanguageSwitcher />
-            {token && <NotificationBell />}
-            <ThemeToggle />
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
 
-            {!token ? (
-              <div style={{ display: 'flex', gap: '0.75rem' }} className="hidden-mobile">
-                <Link to="/login" className="btn btn-text" style={{ fontSize: '0.95rem' }}>{t('login')}</Link>
-                <Link to="/register" className="btn btn-primary" style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem', borderRadius: '10px' }}>{t('register')}</Link>
-              </div>
-            ) : (
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <ThemeToggle />
+            {token && <NotificationBell />}
+
+            {token ? (
               <button
                 onClick={handleLogout}
-                className="btn btn-outline hidden-mobile"
-                style={{ padding: '0.5rem 1.2rem', fontSize: '0.9rem', borderRadius: '10px', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                className="btn btn-outline border-slate-200 text-red-600 hover:bg-red-50 hover:border-red-100 py-2 px-4 text-xs uppercase tracking-widest"
               >
-                <LogOut size={16} />
+                <LogOut size={16} className="mr-2" />
                 {t('logout')}
               </button>
+            ) : (
+              <div className="flex gap-3">
+                <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-blue-600 px-4 py-2">
+                  {t('login')}
+                </Link>
+                <Link to="/register" className="btn btn-primary py-2 px-5 text-sm shadow-blue-500/20">
+                  {t('register')}
+                </Link>
+              </div>
             )}
-
-            <button
-              className="mobile-toggle"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              style={{ display: 'none', padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-main)' }}
-            >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
         </div>
+
+        {/* Mobile Toggle */}
+        <button
+          className="md:hidden p-2 text-slate-600 dark:text-slate-300"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
       </div>
 
       {/* Mobile Menu */}
@@ -138,41 +125,36 @@ const Navbar = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            style={{
-              position: 'absolute', top: '100%', left: 0, right: 0,
-              background: 'var(--card-bg)', backdropFilter: 'blur(20px)',
-              borderBottom: '1px solid var(--card-border)', zIndex: 90,
-              overflow: 'hidden'
-            }}
+            className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 overflow-hidden"
           >
-            <div className="container" style={{ padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="container mx-auto px-6 py-8 flex flex-col gap-6">
               {navLinks.filter(l => l.show).map(link => (
-                <Link key={link.path} to={link.path} style={{ fontSize: '1.1rem', fontWeight: '600' }} className="nav-link">
+                <Link key={link.path} to={link.path} className="text-lg font-bold flex items-center gap-3">
+                  {link.icon && <link.icon size={20} className="text-blue-600" />}
                   {link.name}
                 </Link>
               ))}
-              <hr style={{ opacity: 0.1 }} />
-              {token ? (
-                <button onClick={handleLogout} className="btn btn-outline" style={{ width: '100%', color: 'var(--danger)' }}>
-                  <LogOut size={18} /> {t('logout')}
-                </button>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <Link to="/login" className="btn btn-outline" style={{ width: '100%' }}>{t('login')}</Link>
-                  <Link to="/register" className="btn btn-primary" style={{ width: '100%' }}>{t('register')}</Link>
-                </div>
-              )}
+              <hr className="border-slate-100 dark:border-slate-800" />
+              <div className="flex items-center justify-between">
+                 <div className="flex gap-4">
+                    <LanguageSwitcher />
+                    <ThemeToggle />
+                 </div>
+                 {token ? (
+                    <button onClick={handleLogout} className="text-red-600 font-bold flex items-center gap-2">
+                       <LogOut size={20} /> {t('logout')}
+                    </button>
+                 ) : (
+                    <div className="flex gap-4">
+                       <Link to="/login" className="font-bold">{t('login')}</Link>
+                       <Link to="/register" className="text-blue-600 font-bold">{t('register')}</Link>
+                    </div>
+                 )}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .hidden-mobile { display: none !important; }
-          .mobile-toggle { display: block !important; }
-        }
-      `}</style>
     </nav>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, UserPlus, ArrowRight } from 'lucide-react';
 import api from '../lib/axios';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -41,97 +41,102 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="glass-panel auth-card animate-up">
-        <div className="auth-header">
-          <h2>{t("register")}</h2>
-          <p>
-            {t("already_have_account")}{' '}
-            <Link to="/login" className="auth-link">
-              {t("login")}
-            </Link>
-          </p>
+    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/50">
+      <div className="w-full max-w-md">
+        <div className="glass-panel p-8 md:p-10">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold mb-3">{t("register")}</h2>
+            <p className="text-slate-500 dark:text-slate-400">
+              {t("already_have_account") || "Déjà un compte ?"} <Link to="/login" className="text-blue-600 font-bold hover:underline">{t("login")}</Link>
+            </p>
+          </div>
+
+          <form onSubmit={handleRegister} className="space-y-6">
+            {error && (
+              <div className="alert alert-danger animate-in fade-in slide-in-from-top-4">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="form-label">{t("email")}</label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <input
+                  type="email"
+                  required
+                  className="form-input pl-10"
+                  placeholder="etudiant@institution.edu"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="form-label">{t("password")}</label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="form-input px-10"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="form-label">{t("confirm_password") || "Confirmer le mot de passe"}</label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  className="form-input px-10"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full py-3.5 text-lg shadow-blue-500/25 group"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                   {t("loading")}...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <UserPlus size={20} />
+                  {t("register")}
+                  <ArrowRight size={20} className="ml-auto group-hover:translate-x-1 transition-transform" />
+                </span>
+              )}
+            </button>
+          </form>
         </div>
-
-        <form onSubmit={handleRegister} autoComplete="off">
-          {error && <div className="alert alert-danger">{error}</div>}
-
-          <div className="form-group">
-            <label className="form-label">{t("email")}</label>
-            <input
-              type="email"
-              required
-              className="form-input"
-              placeholder="etudiant@institution.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">{t("password")}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                className="form-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ marginBottom: 0, paddingRight: '2.5rem' }}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', color: 'var(--text-muted)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0
-                }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">{t("confirm_password") || "Confirmer le mot de passe"}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                required
-                className="form-input"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ marginBottom: 0, paddingRight: '2.5rem' }}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{
-                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', color: 'var(--text-muted)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0
-                }}
-              >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary"
-            style={{ width: '100%', marginTop: '1rem' }}
-          >
-            {loading ? t("loading") : t("register")}
-          </button>
-        </form>
       </div>
     </div>
   );

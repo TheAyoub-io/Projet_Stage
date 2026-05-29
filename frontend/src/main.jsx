@@ -2,8 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import './styles/accessibility.css'
-import './styles/enhancedTheme.css'
 import './i18n'
 import { ThemeProvider } from './components/ThemeContext.jsx'
 

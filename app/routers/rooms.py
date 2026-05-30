@@ -82,21 +82,27 @@ def auto_assign_room(db: Session = Depends(get_db), current_user: User = Depends
     if not student_gender:
         raise HTTPException(status_code=400, detail="Student gender not set in profile.")
         
-    # Find available rooms matching gender
-    rooms = db.query(Room).filter(Room.gender_type == student_gender).all()
-    available_rooms = []
+    from sqlalchemy import func
     
-    for room in rooms:
-        occupants = db.query(Application).filter(Application.room_id == room.id).count()
-        if occupants < room.capacity:
-            available_rooms.append(room)
+    # Efficiently find rooms with current occupancy
+    occupancy_subquery = db.query(
+        Application.room_id,
+        func.count(Application.id).label('occupant_count')
+    ).group_by(Application.room_id).subquery()
+
+    available_room = db.query(Room).outerjoin(
+        occupancy_subquery, Room.id == occupancy_subquery.c.room_id
+    ).filter(
+        Room.gender_type == student_gender,
+        func.coalesce(occupancy_subquery.c.occupant_count, 0) < Room.capacity
+    ).order_by(
+        func.coalesce(occupancy_subquery.c.occupant_count, 0).desc()
+    ).first()
             
-    if not available_rooms:
+    if not available_room:
         raise HTTPException(status_code=400, detail="No rooms matching your gender are currently available.")
         
-    # Select the room with more occupants but still having space (to consolidate) or just random
-    # Let's pick the one with most occupants to fill rooms one by one
-    assigned_room = sorted(available_rooms, key=lambda r: db.query(Application).filter(Application.room_id == r.id).count(), reverse=True)[0]
+    assigned_room = available_room
     
     application.room_id = assigned_room.id
     db.commit()

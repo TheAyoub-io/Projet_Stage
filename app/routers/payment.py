@@ -79,8 +79,8 @@ async def stripe_webhook(
             # Update application or mark as paid
             app = db.query(Application).filter(Application.id == int(application_id)).first()
             if app:
-                # We could add a 'paid' field or update status
-                # For now, let's just log it or add a comment to history
+                app.is_paid = True
+
                 from ..models.models import StatusHistory
                 history = StatusHistory(
                     application_id=app.id,

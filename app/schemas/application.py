@@ -54,6 +54,7 @@ class ApplicationResponse(BaseModel):
     room_id: Optional[int] = None
     admin_feedback: Optional[str] = None
     has_new_message: bool = False
+    is_paid: bool = False
     room: Optional[RoomResponse] = None
     documents: List[DocumentResponse] = []
     history: List[StatusHistoryResponse] = []
@@ -80,6 +81,7 @@ class ApplicationWithProfile(BaseModel):
     room_id: Optional[int] = None
     admin_feedback: Optional[str] = None
     has_new_message: bool = False
+    is_paid: bool = False
     room: Optional[RoomResponse] = None
     documents: List[DocumentResponse] = []
     history: List[StatusHistoryResponse] = []

@@ -9,9 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 
 from ..models.database import get_db
-from ..models.models import User, Profile, Application, Document, StudentType, DocumentType, ChatMessage, UserRole, Notification, StatusHistory, ApplicationStatus
+from ..models.models import User, Profile, Application, Document, StudentType, DocumentType, ChatMessage, UserRole, StatusHistory, ApplicationStatus
 from ..schemas.application import ApplicationStatusResponse, ApplicationResponse, ProfileResponse, ProfileUpdate, ChatMessageCreate, ChatMessageResponse
 from ..auth.dependencies import get_current_user
+from ..services.documents import save_document
+from ..services.audit import record_audit_log
+from ..services.notifications import create_notification
 
 router = APIRouter(
     prefix="/applications",
@@ -120,40 +123,23 @@ async def submit_application(
     db.commit()
     db.refresh(application)
 
-    # 5. Handle File Uploads
-    def save_file(upload_file: UploadFile) -> str:
-        ext = os.path.splitext(upload_file.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(upload_file.file, buffer)
-        return file_path
-
-    documents = []
+    # 5. Handle File Uploads via Service
+    save_document(cin_copy, application.id, DocumentType.CIN_COPY, db)
+    save_document(transcript, application.id, DocumentType.TRANSCRIPT, db)
     
-    # CIN Copy
-    cin_path = save_file(cin_copy)
-    documents.append(Document(application_id=application.id, document_type=DocumentType.CIN_COPY, file_url=cin_path))
-    
-    # Transcript
-    transcript_path = save_file(transcript)
-    documents.append(Document(application_id=application.id, document_type=DocumentType.TRANSCRIPT, file_url=transcript_path))
-    
-    # Fee Receipt or Payment ID
     if fee_receipt:
-        fee_receipt_path = save_file(fee_receipt)
-        documents.append(Document(application_id=application.id, document_type=DocumentType.FEE_RECEIPT, file_url=fee_receipt_path))
+        save_document(fee_receipt, application.id, DocumentType.FEE_RECEIPT, db)
     elif payment_id:
-        documents.append(Document(application_id=application.id, document_type=DocumentType.FEE_RECEIPT, file_url=f"stripe://{payment_id}"))
+        db.add(Document(application_id=application.id, document_type=DocumentType.FEE_RECEIPT, file_url=f"stripe://{payment_id}"))
     
-    # Residency Cert (Optional)
     if residency_cert:
-        cert_path = save_file(residency_cert)
-        documents.append(Document(application_id=application.id, document_type=DocumentType.RESIDENCY_CERT, file_url=cert_path))
+        save_document(residency_cert, application.id, DocumentType.RESIDENCY_CERT, db)
         
-    db.add_all(documents)
     db.commit()
     db.refresh(application)
+
+    # Record Audit Log
+    record_audit_log(db, current_user.id, "SUBMIT_APPLICATION", "applications", f"Application ID: {application.id}")
     
     # 6. Initial Status History
     db.add(StatusHistory(
@@ -162,13 +148,12 @@ async def submit_application(
         comment="Candidature soumise avec succès."
     ))
     # 7. Notification for student
-    db.add(Notification(
-        user_id=current_user.id,
-        title="Candidature reçue",
-        message="Votre dossier a été bien reçu et est en cours de traitement.",
-        type="status_change"
-    ))
-    db.commit()
+    create_notification(
+        db,
+        current_user.id,
+        "Candidature reçue",
+        "Votre dossier a été bien reçu et est en cours de traitement."
+    )
     
     return application
 
@@ -316,31 +301,31 @@ async def update_application(
     application.filière = filière
     application.grade_average = grade_average
     
-    # 5. Handle File Uploads (Optional)
-    def save_file(upload_file: UploadFile) -> str:
-        ext = os.path.splitext(upload_file.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(upload_file.file, buffer)
-        return file_path
-
-    # Helper to update document
+    # 5. Handle File Uploads via Service (Optional updates)
     def update_document(doc_type, upload_file):
         if not upload_file:
             return
-        # Find existing document
+
+        # Check if document already exists
         existing_doc = next((d for d in application.documents if d.document_type == doc_type), None)
-        new_path = save_file(upload_file)
+
+        # We reuse save_document which adds to session, but if it exists we just update url
+        from ..services.documents import validate_file_extension
+        ext = validate_file_extension(upload_file.filename)
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(upload_file.file, buffer)
+
         if existing_doc:
-            # Delete old file from disk if needed (optional, keeping it simple here)
-            existing_doc.file_url = new_path
+            existing_doc.file_url = file_path
         else:
-            new_doc = Document(application_id=application.id, document_type=doc_type, file_url=new_path)
-            db.add(new_doc)
+            db.add(Document(application_id=application.id, document_type=doc_type, file_url=file_path))
 
     update_document(DocumentType.CIN_COPY, cin_copy)
     update_document(DocumentType.TRANSCRIPT, transcript)
+
     if fee_receipt:
         update_document(DocumentType.FEE_RECEIPT, fee_receipt)
     elif payment_id:
@@ -349,6 +334,7 @@ async def update_application(
             existing_doc.file_url = f"stripe://{payment_id}"
         else:
             db.add(Document(application_id=application.id, document_type=DocumentType.FEE_RECEIPT, file_url=f"stripe://{payment_id}"))
+
     update_document(DocumentType.RESIDENCY_CERT, residency_cert)
 
     db.commit()
@@ -361,13 +347,12 @@ async def update_application(
         comment="Candidature mise à jour par l'étudiant."
     ))
     # Notification for student
-    db.add(Notification(
-        user_id=current_user.id,
-        title="Dossier mis à jour",
-        message="Les modifications apportées à votre dossier ont été enregistrées.",
-        type="status_change"
-    ))
-    db.commit()
+    create_notification(
+        db,
+        current_user.id,
+        "Dossier mis à jour",
+        "Les modifications apportées à votre dossier ont été enregistrées."
+    )
     
     return application
 
@@ -439,15 +424,14 @@ def send_chat_message(
     
     notif_title = "Nouveau message de support" if current_user.role == UserRole.ADMIN else f"Nouveau message de {current_user.profile.full_name if current_user.profile else current_user.email}"
     
-    new_notif = Notification(
-        user_id=receiver_id,
-        title=notif_title,
-        message=payload.message[:100] + ("..." if len(payload.message) > 100 else ""),
-        type="message",
-        related_id=application.id
+    create_notification(
+        db,
+        receiver_id,
+        notif_title,
+        payload.message[:100] + ("..." if len(payload.message) > 100 else ""),
+        "message",
+        application.id
     )
-    db.add(new_notif)
-    db.commit()
     db.refresh(msg)
 
     sender_profile = db.query(Profile).filter(Profile.user_id == msg.sender_id).first()

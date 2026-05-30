@@ -40,6 +40,28 @@ app.include_router(notifications.router)
 app.include_router(chat.router)
 app.include_router(payment.router)
 
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+import logging
+
+logger = logging.getLogger(__name__)
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request, exc):
+    logger.error(f"Database error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Une erreur de base de données est survenue. Veuillez réessayer plus tard."}
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Global error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Une erreur inattendue est survenue."}
+    )
+
 import os
 
 # Serve uploaded documents

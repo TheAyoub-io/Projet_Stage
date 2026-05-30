@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, XCircle, AlertCircle, MessageCircle, FileText, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, CheckCircle, XCircle, AlertCircle, MessageCircle, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatWindow from './ChatWindow';
 
@@ -17,62 +17,62 @@ const ReviewPanel = ({ application, onClose, onStatusChange }) => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[1000] flex bg-white dark:bg-gray-900"
+            className="fixed inset-0 z-[1000] flex bg-white dark:bg-slate-900"
         >
             {/* Left: Document Viewer */}
-            <div className="flex-1 bg-gray-100 dark:bg-gray-800 flex flex-col border-r dark:border-gray-700">
-                <div className="p-4 bg-white dark:bg-gray-900 border-b flex justify-between items-center">
+            <div className="flex-1 bg-slate-100 dark:bg-slate-800 flex flex-col border-r border-slate-200 dark:border-slate-700">
+                <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <h3 className="font-bold">Documents ({application.documents?.length || 0})</h3>
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider text-xs">Documents ({application.documents?.length || 0})</h3>
                         <div className="flex gap-1">
                             {application.documents?.map((_, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setActiveDocIndex(idx)}
-                                    className={`w-2 h-2 rounded-full ${idx === activeDocIndex ? 'bg-primary' : 'bg-gray-300'}`}
+                                    className={`w-1.5 h-1.5 rounded-full transition-colors ${idx === activeDocIndex ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                                 />
                             ))}
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button className="btn btn-outline" onClick={() => setActiveDocIndex(i => Math.max(0, i - 1))}><ChevronLeft size={18} /></button>
-                        <button className="btn btn-outline" onClick={() => setActiveDocIndex(i => Math.min((application.documents?.length || 1) - 1, i + 1))}><ChevronRight size={18} /></button>
+                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500" onClick={() => setActiveDocIndex(i => Math.max(0, i - 1))}><ChevronLeft size={18} /></button>
+                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500" onClick={() => setActiveDocIndex(i => Math.min((application.documents?.length || 1) - 1, i + 1))}><ChevronRight size={18} /></button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-8 flex justify-center bg-[#525659]">
+                <div className="flex-1 overflow-auto p-8 flex justify-center bg-slate-200 dark:bg-slate-950">
                     {currentDoc ? (
-                        <div className="shadow-2xl max-w-4xl w-full bg-white">
+                        <div className="shadow-2xl max-w-4xl w-full bg-white rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700">
                             <iframe
-                                src={`http://localhost:8000${currentDoc.file_url}`}
-                                className="w-full h-[120vh] border-none"
+                                src={`http://localhost:8000/${currentDoc.file_url}`}
+                                className="w-full h-full min-h-[80vh] border-none"
                                 title="Document Preview"
                             />
                         </div>
                     ) : (
-                        <div className="m-auto text-white flex flex-col items-center gap-4">
-                            <FileText size={64} opacity={0.2} />
-                            <p>Aucun document disponible</p>
+                        <div className="m-auto text-slate-400 flex flex-col items-center gap-4">
+                            <FileText size={64} className="opacity-20" />
+                            <p className="font-bold uppercase tracking-widest text-xs">Aucun document disponible</p>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Right: Review Form & Info */}
-            <div className="w-[450px] flex flex-col glass-panel" style={{ borderRadius: 0, border: 'none', shadow: 'none' }}>
-                <div className="p-6 border-b flex justify-between items-center">
+            <div className="w-[450px] flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xl font-black">{application.profile?.full_name}</h2>
-                        <p className="text-sm text-gray-500">{application.student_email}</p>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-white leading-none mb-1">{application.profile?.full_name}</h2>
+                        <p className="text-xs font-medium text-slate-400">{application.student_email}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={24} /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"><X size={24} className="text-slate-400" /></button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     <section>
-                        <h4 className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-4">Informations Dossier</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                            <InfoItem label="Moyenne" value={`${application.grade_average}/20`} />
+                        <h4 className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-4">Informations Dossier</h4>
+                        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                            <InfoItem label="Moyenne" value={`${parseFloat(application.grade_average).toFixed(2)}/20`} />
                             <InfoItem label="Filière" value={application.filière} />
                             <InfoItem label="Type" value={application.student_type} />
                             <InfoItem label="Statut" value={application.status} />
@@ -80,62 +80,64 @@ const ReviewPanel = ({ application, onClose, onStatusChange }) => {
                     </section>
 
                     <section>
-                        <h4 className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-4">Pièces Justificatives</h4>
+                        <h4 className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-4">Pièces Justificatives</h4>
                         <div className="space-y-2">
                             {application.documents?.map((doc, idx) => (
                                 <button
                                     key={doc.id}
                                     onClick={() => setActiveDocIndex(idx)}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${idx === activeDocIndex ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-gray-100 hover:bg-gray-50'}`}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${idx === activeDocIndex ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/10' : 'border-slate-50 dark:border-slate-800 hover:border-slate-200'}`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg ${idx === activeDocIndex ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`p-2 rounded-lg ${idx === activeDocIndex ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                                             <FileText size={16} />
                                         </div>
-                                        <span className="text-sm font-semibold">{doc.document_type.replace(/_/g, ' ')}</span>
+                                        <span className={`text-xs font-bold uppercase tracking-tight ${idx === activeDocIndex ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                                            {doc.document_type.replace(/_/g, ' ')}
+                                        </span>
                                     </div>
-                                    {idx === activeDocIndex && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                    {idx === activeDocIndex && <CheckCircle size={16} className="text-blue-600" />}
                                 </button>
                             ))}
                         </div>
                     </section>
 
-                    <section className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl">
-                        <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                            <MessageCircle size={18} className="text-primary" />
+                    <section className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
+                            <MessageCircle size={18} className="text-blue-600" />
                             Besoin de précision?
                         </h4>
-                        <p className="text-xs text-gray-500 mb-4">Ouvrez le chat pour discuter en direct avec l'étudiant concernant son dossier.</p>
+                        <p className="text-xs text-slate-500 mb-4 leading-relaxed">Discutez en direct avec l'étudiant concernant son dossier pour éviter un rejet définitif.</p>
                         <button
                             onClick={() => setShowChat(true)}
-                            className="btn btn-outline w-full py-2 text-sm"
+                            className="btn btn-primary w-full py-2.5 text-xs uppercase tracking-widest shadow-blue-500/20"
                         >
-                            Ouvrir la Discussion
+                            Ouvrir le Chat
                         </button>
                     </section>
                 </div>
 
                 {/* Action Bar */}
-                <div className="p-6 border-t bg-gray-50 dark:bg-gray-900 space-y-3">
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 space-y-3">
                     <div className="flex gap-3">
                         <button
                             onClick={() => onStatusChange(application.id, 'approved')}
-                            className="flex-1 btn btn-primary bg-success hover:bg-success/90 border-none py-4"
+                            className="flex-1 btn bg-emerald-600 hover:bg-emerald-700 text-white border-none py-3.5 text-sm font-bold shadow-emerald-500/20"
                         >
-                            <CheckCircle size={20} /> Valider
+                            Approuver
                         </button>
                         <button
                             onClick={() => onStatusChange(application.id, 'rejected')}
-                            className="flex-1 btn bg-danger text-white hover:bg-danger/90 border-none py-4"
+                            className="flex-1 btn bg-red-600 hover:bg-red-700 text-white border-none py-3.5 text-sm font-bold shadow-red-500/20"
                         >
-                            <XCircle size={20} /> Rejeter
+                            Rejeter
                         </button>
                     </div>
                     <button
                         onClick={() => onStatusChange(application.id, 'incomplete')}
-                        className="w-full btn btn-outline border-pink-200 text-pink-600 hover:bg-pink-50 py-4"
+                        className="w-full btn btn-outline border-pink-200 text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20 py-3 text-xs uppercase tracking-widest font-black"
                     >
-                        <AlertCircle size={20} /> Demander Correction
+                        Demander Correction
                     </button>
                 </div>
             </div>
@@ -151,8 +153,8 @@ const ReviewPanel = ({ application, onClose, onStatusChange }) => {
 
 const InfoItem = ({ label, value }) => (
     <div>
-        <p className="text-[10px] text-gray-400 font-bold uppercase">{label}</p>
-        <p className="text-sm font-semibold dark:text-white capitalize">{value}</p>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter mb-0.5">{label}</p>
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize truncate">{value}</p>
     </div>
 );
 

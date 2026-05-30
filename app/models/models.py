@@ -72,7 +72,9 @@ class Application(Base):
     room_id = Column(Integer, ForeignKey("rooms.id", ondelete="SET NULL"), nullable=True)
     admin_feedback = Column(Text, nullable=True)
     has_new_message = Column(Boolean, default=False)
+    is_paid = Column(Boolean, default=False)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="applications")
     documents = relationship("Document", back_populates="application")

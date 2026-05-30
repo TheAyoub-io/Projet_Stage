@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
 from ..models.database import get_db
-from ..models.models import User, Application, Profile, ApplicationStatus, Room, Notification, StatusHistory, UserRole
+from ..models.models import User, Application, Profile, ApplicationStatus, Room, StatusHistory, UserRole
+from ..services.audit import record_audit_log
+from ..services.notifications import create_notification
 from ..schemas.application import (
     ApplicationResponse,
     ApplicationStatusUpdate,
@@ -136,6 +138,9 @@ def update_application_status(
     db.commit()
     db.refresh(application)
 
+    # 0. Record Audit Log
+    record_audit_log(db, admin.id, f"UPDATE_STATUS_{update.status.value}", "admin", f"App ID: {application.id}")
+
     # 1. Create Status History Entry
     history_entry = StatusHistory(
         application_id=application.id,
@@ -149,14 +154,12 @@ def update_application_status(
     if update.admin_feedback:
         notification_msg += f" Commentaire : {update.admin_feedback}"
     
-    new_notif = Notification(
-        user_id=application.user_id,
-        title="Mise à jour de votre candidature",
-        message=notification_msg,
-        type="status_change"
+    create_notification(
+        db,
+        application.user_id,
+        "Mise à jour de votre candidature",
+        notification_msg
     )
-    db.add(new_notif)
-    db.commit()
 
     # Send email notification
     student = application.user

@@ -4,6 +4,7 @@ import { Eye, EyeOff, Mail, Lock, UserPlus, ArrowRight } from 'lucide-react';
 import api from '../lib/axios';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import FormError from '../components/FormError';
 
 const Register = () => {
   const { t } = useTranslation();
@@ -34,7 +35,6 @@ const Register = () => {
     } catch (err) {
       const errMsg = err.response?.data?.detail || t("error_register") || 'Échec de l\'inscription.';
       setError(errMsg);
-      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -52,11 +52,7 @@ const Register = () => {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-6">
-            {error && (
-              <div className="alert alert-danger animate-in fade-in slide-in-from-top-4">
-                {error}
-              </div>
-            )}
+            <FormError error={error} />
 
             <div className="space-y-2">
               <label className="form-label">{t("email")}</label>

@@ -4,6 +4,7 @@ import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
 import api from '../lib/axios';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import FormError from '../components/FormError';
 
 function parseJwt(token) {
   try {
@@ -45,7 +46,6 @@ const Login = () => {
     } catch (err) {
       const errMsg = err.response?.data?.detail || t("error_login") || "Échec de la connexion";
       setError(errMsg);
-      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -63,11 +63,7 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {error && (
-              <div className="alert alert-danger animate-in fade-in slide-in-from-top-4">
-                {error}
-              </div>
-            )}
+            <FormError error={error} />
 
             <div className="space-y-2">
               <label className="form-label">{t("email")}</label>

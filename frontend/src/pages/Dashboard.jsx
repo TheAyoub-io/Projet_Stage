@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/axios';
 import { FileText, CheckCircle, XCircle, Clock, User, DoorOpen, ArrowRight, AlertCircle, Edit3, Download, MessageCircle, Phone, MapPin, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import html2pdf from 'html2pdf.js';
 import ChatWindow from '../components/ChatWindow';
 import { useTranslation } from 'react-i18next';
+import Skeleton, { SkeletonCard } from '../components/ui/Skeleton';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -40,7 +40,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
-
 
 
   const handleProfileUpdate = async (e) => {
@@ -77,7 +76,6 @@ const Dashboard = () => {
       .catch(() => { toast.error("Erreur de génération PDF", { id: loadingToast }); });
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
   if (error) return <div className="container mx-auto px-6 py-12 text-center"><div className="alert alert-danger max-w-md mx-auto">{error}</div></div>;
 
   const { application, profile, message } = statusData || {};
@@ -101,7 +99,7 @@ const Dashboard = () => {
   ] : [];
 
   return (
-    <div className="container mx-auto px-6 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="container mx-auto px-6 py-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
         <div className="flex items-center gap-5">
           <div className="p-4 bg-gradient-main rounded-2xl text-white shadow-xl shadow-blue-500/20">
@@ -109,11 +107,11 @@ const Dashboard = () => {
           </div>
           <div>
             <h1 className="text-3xl font-extrabold">{t("dashboard_title")}</h1>
-            <p className="text-slate-500 dark:text-slate-400">{t("welcome")}, {profile?.full_name || 'Étudiant'}</p>
+            <p className="text-slate-500 dark:text-slate-400">{t("welcome")}, {loading ? <Skeleton className="h-4 w-32 inline-block ml-1" /> : (profile?.full_name || 'Étudiant')}</p>
           </div>
         </div>
 
-        {!application && (
+        {!loading && !application && (
              <Link to="/apply" className="btn btn-primary px-8 group">
                 {t("start_application") || "Commencer ma candidature"}
                 <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
@@ -121,241 +119,251 @@ const Dashboard = () => {
         )}
       </div>
 
-      {application && (
-        <div className="glass-panel p-8 mb-10 overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
-          <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-            <Clock size={20} className="text-blue-600" />
-            {t("tracking_title") || "Suivi de votre dossier"}
-          </h3>
+      {loading ? (
+        <div className="space-y-10">
+          <div className="glass-panel p-8"><Skeleton className="h-24 w-full" /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+               <div className="glass-panel p-8"><Skeleton className="h-64 w-full" /></div>
+            </div>
+            <div className="space-y-8">
+               <SkeletonCard />
+               <SkeletonCard />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {application && (
+            <div className="glass-panel p-8 mb-10 overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
+              <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                <Clock size={20} className="text-blue-600" />
+                {t("tracking_title") || "Suivi de votre dossier"}
+              </h3>
 
-          <div className="relative flex justify-between items-start max-w-4xl mx-auto">
-            {/* Connection Line */}
-            <div className="absolute top-5 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-700 -z-10"></div>
+              <div className="relative flex justify-between items-start max-w-4xl mx-auto">
+                <div className="absolute top-5 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-700 -z-10"></div>
 
-            {steps.map((step) => (
-              <div key={step.id} className="flex flex-col items-center text-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-500 border-2 ${
-                  step.completed
-                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                    : step.active
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
-                      : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'
-                }`}>
-                  {step.completed ? <CheckCircle size={20} /> : step.id}
-                </div>
-                <span className={`mt-3 text-sm font-bold ${step.completed || step.active ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
-                  {step.label}
-                </span>
+                {steps.map((step) => (
+                  <div key={step.id} className="flex flex-col items-center text-center">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-500 border-2 ${
+                      step.completed
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                        : step.active
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+                          : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'
+                    }`}>
+                      {step.completed ? <CheckCircle size={20} /> : step.id}
+                    </div>
+                    <span className={`mt-3 text-sm font-bold ${step.completed || step.active ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Main Status */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="glass-panel overflow-hidden">
-            <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
-              <h3 className="font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                <FileText size={20} className="text-blue-600" />
-                {t("application_details") || "Détails de la Candidature"}
-              </h3>
-              {application && getStatusBadge(application.status)}
             </div>
+          )}
 
-            <div className="p-8">
-              {!application ? (
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <FileText size={40} />
-                  </div>
-                  <p className="text-lg text-slate-500 mb-8">{message || "Aucune candidature soumise pour le moment."}</p>
-                  <Link to="/apply" className="btn btn-primary px-10 py-3 font-bold">
-                    Soumettre ma Candidature
-                  </Link>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="glass-panel overflow-hidden">
+                <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+                  <h3 className="font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                    <FileText size={20} className="text-blue-600" />
+                    {t("application_details") || "Détails de la Candidature"}
+                  </h3>
+                  {application && getStatusBadge(application.status)}
                 </div>
-              ) : (
-                <div className="space-y-8">
-                   {application.status === 'incomplete' && (
-                    <div className="p-5 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 rounded-xl">
-                      <div className="flex items-center gap-3 text-pink-700 dark:text-pink-400 font-bold mb-2">
-                        <AlertCircle size={20} /> Action Requise
+
+                <div className="p-8">
+                  {!application ? (
+                    <div className="text-center py-12">
+                      <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <FileText size={40} />
                       </div>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm italic">&ldquo;{application.admin_feedback}&rdquo;</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Type d'Étudiant</p>
-                      <p className="text-lg font-bold">{application.student_type}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Moyenne Académique</p>
-                      <p className="text-lg font-bold text-blue-600">{parseFloat(application.grade_average).toFixed(2)} / 20</p>
-                    </div>
-                    <div className="md:col-span-2 space-y-1">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Filière / Spécialité</p>
-                      <p className="text-lg font-bold">{application.filière || application.filiere}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                    {application.status === 'approved' && (
-                       <button onClick={handleDownloadPDF} className="btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
-                          <Download size={18} className="mr-2" /> Télécharger l'Attestation
-                       </button>
-                    )}
-                    {['pending', 'rejected', 'incomplete'].includes(application.status) && (
-                      <Link to="/apply?edit=true" className="btn btn-outline border-blue-200 hover:border-blue-600 group">
-                        <Edit3 size={18} className="mr-2" />
-                        {application.status === 'rejected' ? 'Ré-appliquer' : 'Modifier mon dossier'}
+                      <p className="text-lg text-slate-500 mb-8">{message || "Aucune candidature soumise pour le moment."}</p>
+                      <Link to="/apply" className="btn btn-primary px-10 py-3 font-bold">
+                        Soumettre ma Candidature
                       </Link>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Timeline / History */}
-          {application?.history?.length > 0 && (
-            <div className="glass-panel p-8">
-               <h3 className="font-bold mb-6 flex items-center gap-2">
-                 <Clock size={20} className="text-blue-600" /> Historique des Décisions
-               </h3>
-               <div className="space-y-6 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-                  {application.history.map((h, i) => (
-                    <div key={h.id} className="relative pl-8">
-                       <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${i === 0 ? 'bg-blue-600 scale-125' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-                       <div className="flex justify-between items-start mb-1">
-                          <span className="font-bold capitalize">{h.status === 'approved' ? 'Approuvée' : h.status}</span>
-                          <span className="text-xs text-slate-400">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
-                       </div>
-                       {h.comment && <p className="text-sm text-slate-500 italic">&ldquo;{h.comment}&rdquo;</p>}
                     </div>
-                  ))}
-               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column - Profile & Room */}
-        <div className="space-y-8">
-          {/* Room Assignment Card */}
-          {application?.status === 'approved' && (
-            <div className="glass-panel overflow-hidden border-t-4 border-emerald-500">
-               <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 flex items-center gap-3">
-                  <DoorOpen className="text-emerald-600" />
-                  <h3 className="font-bold">{t("room_assignment")}</h3>
-               </div>
-               <div className="p-8 text-center">
-                  {application.room ? (
-                    <>
-                      <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle size={40} />
-                      </div>
-                      <p className="text-sm text-slate-500 mb-1">Votre Numéro de Chambre</p>
-                      <h2 className="text-5xl font-black text-emerald-600 mb-2">{application.room.room_number}</h2>
-                      <p className="text-xs font-bold text-slate-400 uppercase">Affectation Validée</p>
-                    </>
                   ) : (
-                    <div className="space-y-4">
-                       <div className="alert bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400">
-                          Paiement des frais requis pour obtenir une chambre.
-                       </div>
-                       <button
-                         onClick={async () => {
-                           try {
-                             const res = await api.post('/payments/create-checkout-session');
-                             window.location.href = res.data.checkout_url;
-                           } catch (err) { toast.error("Échec de l'initialisation du paiement"); }
-                         }}
-                         className="btn btn-primary w-full py-3"
-                       >
-                         Payer 500 MAD (Stripe)
-                       </button>
+                    <div className="space-y-8">
+                       {application.status === 'incomplete' && (
+                        <div className="p-5 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 rounded-xl">
+                          <div className="flex items-center gap-3 text-pink-700 dark:text-pink-400 font-bold mb-2">
+                            <AlertCircle size={20} /> Action Requise
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 text-sm italic">&ldquo;{application.admin_feedback}&rdquo;</p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Type d'Étudiant</p>
+                          <p className="font-bold text-lg">{application.student_type}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Moyenne Académique</p>
+                          <p className="font-bold text-lg text-blue-600">{parseFloat(application.grade_average).toFixed(2)} / 20</p>
+                        </div>
+                        <div className="md:col-span-2 space-y-1">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Filière / Spécialité</p>
+                          <p className="font-bold text-lg">{application.filière || application.filiere}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+                        {application.status === 'approved' && (
+                           <button onClick={handleDownloadPDF} className="btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
+                              <Download size={18} className="mr-2" /> Télécharger l'Attestation
+                           </button>
+                        )}
+                        {['pending', 'rejected', 'incomplete'].includes(application.status) && (
+                          <Link to="/apply?edit=true" className="btn btn-outline border-blue-200 hover:border-blue-600 group">
+                            <Edit3 size={18} className="mr-2" />
+                            {application.status === 'rejected' ? 'Ré-appliquer' : 'Modifier mon dossier'}
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   )}
-               </div>
-            </div>
-          )}
+                </div>
+              </div>
 
-          {/* Profile Card */}
-          <div className="glass-panel overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="font-bold flex items-center gap-2">
-                <User size={20} className="text-blue-600" /> Profil
-              </h3>
-              {!editingProfile && profile && (
-                <button onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }} className="text-xs font-bold text-blue-600 hover:underline">
-                  Modifier
-                </button>
-              )}
-            </div>
-
-            <div className="p-6">
-              {editingProfile ? (
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                   <div>
-                     <label className="form-label">Téléphone</label>
-                     <input type="text" className="form-input" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
+              {application?.history?.length > 0 && (
+                <div className="glass-panel p-8">
+                   <h3 className="font-bold mb-6 flex items-center gap-2">
+                     <Clock size={20} className="text-blue-600" /> Historique des Décisions
+                   </h3>
+                   <div className="space-y-6 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
+                      {application.history.map((h, i) => (
+                        <div key={h.id} className="relative pl-8">
+                           <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${i === 0 ? 'bg-blue-600 scale-125' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                           <div className="flex justify-between items-start mb-1">
+                              <span className="font-bold capitalize">{h.status === 'approved' ? 'Approuvée' : h.status}</span>
+                              <span className="text-xs text-slate-400">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                           </div>
+                           {h.comment && <p className="text-sm text-slate-500 italic">&ldquo;{h.comment}&rdquo;</p>}
+                        </div>
+                      ))}
                    </div>
-                   <div>
-                     <label className="form-label">Adresse</label>
-                     <input type="text" className="form-input" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
-                   </div>
-                   <div className="flex gap-3 pt-2">
-                      <button type="button" onClick={() => setEditingProfile(false)} className="btn btn-outline flex-1 py-2 text-sm">Annuler</button>
-                      <button type="submit" disabled={profileSaving} className="btn btn-primary flex-1 py-2 text-sm">
-                        {profileSaving ? '...' : 'Enregistrer'}
-                      </button>
-                   </div>
-                </form>
-              ) : (
-                <div className="space-y-5">
-                  <div className="flex items-start gap-3">
-                    <User className="text-slate-400 mt-0.5" size={18} />
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase">Nom Complet</p>
-                      <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.full_name}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Phone className="text-slate-400 mt-0.5" size={18} />
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase">Téléphone</p>
-                      <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.phone || 'Non renseigné'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="text-slate-400 mt-0.5" size={18} />
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase">Ville / Province</p>
-                      <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.city} / {profile?.province}</p>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Help Card */}
-          <div className="glass-panel p-6 bg-blue-600 text-white">
-             <h4 className="font-bold mb-2 flex items-center gap-2">
-                <MessageCircle size={20} /> Besoin d'aide ?
-             </h4>
-             <p className="text-sm text-blue-100 mb-4 leading-relaxed">
-                Notre équipe administrative est disponible pour répondre à toutes vos questions concernant votre admission.
-             </p>
-             <button onClick={() => setIsChatOpen(true)} className="w-full btn bg-white text-blue-600 hover:bg-blue-50 py-2.5 font-bold">
-                Ouvrir le Support
-             </button>
+            <div className="space-y-8">
+              {application?.status === 'approved' && (
+                <div className="glass-panel overflow-hidden border-t-4 border-emerald-500">
+                   <div className="p-6 bg-emerald-50/50 dark:bg-emerald-900/10 flex items-center gap-3">
+                      <DoorOpen className="text-emerald-600" />
+                      <h3 className="font-bold">{t("room_assignment")}</h3>
+                   </div>
+                   <div className="p-8 text-center">
+                      {application.room ? (
+                        <>
+                          <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle size={40} />
+                          </div>
+                          <p className="text-sm text-slate-500 mb-1">Votre Numéro de Chambre</p>
+                          <h2 className="text-5xl font-black text-emerald-600 mb-2">{application.room.room_number}</h2>
+                          <p className="text-xs font-bold text-slate-400 uppercase">Affectation Validée</p>
+                        </>
+                      ) : (
+                        <div className="space-y-4">
+                           <div className="alert bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400">
+                              Paiement des frais requis pour obtenir une chambre.
+                           </div>
+                           <button
+                             onClick={async () => {
+                               try {
+                                 const res = await api.post('/payments/create-checkout-session');
+                                 window.location.href = res.data.checkout_url;
+                               } catch { toast.error("Échec de l'initialisation du paiement"); }
+                             }}
+                             className="btn btn-primary w-full py-3"
+                           >
+                             Payer 500 MAD (Stripe)
+                           </button>
+                        </div>
+                      )}
+                   </div>
+                </div>
+              )}
+
+              <div className="glass-panel overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <h3 className="font-bold flex items-center gap-2">
+                    <User size={20} className="text-blue-600" /> Profil
+                  </h3>
+                  {!editingProfile && profile && (
+                    <button onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }} className="text-xs font-bold text-blue-600 hover:underline">
+                      Modifier
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-6">
+                  {editingProfile ? (
+                    <form onSubmit={handleProfileUpdate} className="space-y-4">
+                       <div>
+                         <label className="form-label">Téléphone</label>
+                         <input type="text" className="form-input" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
+                       </div>
+                       <div>
+                         <label className="form-label">Adresse</label>
+                         <input type="text" className="form-input" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
+                       </div>
+                       <div className="flex gap-3 pt-2">
+                          <button type="button" onClick={() => setEditingProfile(false)} className="btn btn-outline flex-1 py-2 text-sm">Annuler</button>
+                          <button type="submit" disabled={profileSaving} className="btn btn-primary flex-1 py-2 text-sm">
+                            {profileSaving ? '...' : 'Enregistrer'}
+                          </button>
+                       </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-5">
+                      <div className="flex items-start gap-3">
+                        <User className="text-slate-400 mt-0.5" size={18} />
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase">Nom Complet</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.full_name}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Phone className="text-slate-400 mt-0.5" size={18} />
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase">Téléphone</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.phone || 'Non renseigné'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <MapPin className="text-slate-400 mt-0.5" size={18} />
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase">Ville / Province</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{profile?.city} / {profile?.province}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="glass-panel p-6 bg-blue-600 text-white">
+                 <h4 className="font-bold mb-2 flex items-center gap-2">
+                    <MessageCircle size={20} /> Besoin d'aide ?
+                 </h4>
+                 <p className="text-sm text-blue-100 mb-4 leading-relaxed">
+                    Notre équipe administrative est disponible pour répondre à toutes vos questions concernant votre admission.
+                 </p>
+                 <button onClick={() => setIsChatOpen(true)} className="w-full btn bg-white text-blue-600 hover:bg-blue-50 py-2.5 font-bold">
+                    Ouvrir le Support
+                 </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* PDF Template (Hidden) */}
       <div className="hidden">
@@ -407,7 +415,6 @@ const Dashboard = () => {
         onClose={() => setIsChatOpen(false)}
       />
 
-      {/* Floating Chat Button */}
       {!isChatOpen && application && (
         <button
           onClick={() => setIsChatOpen(true)}

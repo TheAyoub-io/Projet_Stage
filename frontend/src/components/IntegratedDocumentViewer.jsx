@@ -33,121 +33,89 @@ const IntegratedDocumentViewer = ({ isOpen, onClose, documents, initialIndex = 0
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.85)',
-                        backdropFilter: 'blur(10px)',
-                        zIndex: 2000,
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}
+                    className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[2000] flex flex-col"
                     onClick={onClose}
                 >
                     {/* Header bar */}
                     <div
-                        style={{
-                            padding: '1rem 2rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            color: 'white',
-                            background: 'rgba(0,0,0,0.3)',
-                            borderBottom: '1px solid rgba(255,255,255,0.1)'
-                        }}
+                        className="px-6 py-4 flex justify-between items-center bg-slate-900/50 border-b border-white/10"
                         onClick={e => e.stopPropagation()}
                     >
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white' }}>
-                                {currentDoc.document_type.replace('_', ' ').toUpperCase()}
+                            <h3 className="text-white font-bold uppercase tracking-wider text-sm">
+                                {currentDoc.document_type.replace('_', ' ')}
                             </h3>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
+                            <p className="text-white/50 text-xs font-medium">
                                 Document {currentIndex + 1} sur {documents.length}
                             </p>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <div className="flex items-center gap-4">
                             {isImage && (
-                                <>
-                                    <button onClick={() => setZoom(z => Math.min(z + 0.2, 3))} className="btn-text" style={{ color: 'white' }} title="Zoomer"><ZoomIn size={20} /></button>
-                                    <button onClick={() => setZoom(z => Math.max(z - 0.2, 0.5))} className="btn-text" style={{ color: 'white' }} title="Dézoomer"><ZoomOut size={20} /></button>
-                                    <button onClick={() => setRotation(r => (r + 90) % 360)} className="btn-text" style={{ color: 'white' }} title="Pivoter"><RotateCw size={20} /></button>
-                                </>
+                                <div className="flex bg-white/10 rounded-lg p-1">
+                                    <button onClick={() => setZoom(z => Math.min(z + 0.2, 3))} className="p-2 text-white hover:bg-white/10 rounded-md transition-colors" title="Zoomer"><ZoomIn size={18} /></button>
+                                    <button onClick={() => setZoom(z => Math.max(z - 0.2, 0.5))} className="p-2 text-white hover:bg-white/10 rounded-md transition-colors" title="Dézoomer"><ZoomOut size={18} /></button>
+                                    <button onClick={() => setRotation(r => (r + 90) % 360)} className="p-2 text-white hover:bg-white/10 rounded-md transition-colors" title="Pivoter"><RotateCw size={18} /></button>
+                                </div>
                             )}
-                            <a href={fileUrl} download target="_blank" rel="noreferrer" className="btn-text" style={{ color: 'white' }} title="Télécharger">
+                            <a href={fileUrl} download target="_blank" rel="noreferrer" className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors" title="Télécharger">
                                 <Download size={20} />
                             </a>
-                            <button onClick={onClose} className="btn-text" style={{ color: 'white', marginLeft: '1rem' }}>
+                            <button onClick={onClose} className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors ml-2">
                                 <X size={24} />
                             </button>
                         </div>
                     </div>
 
                     {/* Content Area */}
-                    <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <div className="flex-1 relative flex items-center justify-center overflow-hidden p-10">
                         {documents.length > 1 && (
                             <>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-                                    style={{ position: 'absolute', left: '2rem', zIndex: 10, background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '50%', width: '50px', height: '50px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    className="absolute left-6 z-10 w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
                                 >
-                                    <ChevronLeft size={32} />
+                                    <ChevronLeft size={28} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleNext(); }}
-                                    style={{ position: 'absolute', right: '2rem', zIndex: 10, background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '50%', width: '50px', height: '50px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    className="absolute right-6 z-10 w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
                                 >
-                                    <ChevronRight size={32} />
+                                    <ChevronRight size={28} />
                                 </button>
                             </>
                         )}
 
                         <motion.div
                             key={currentDoc.id}
-                            initial={{ scale: 0.9, opacity: 0 }}
+                            initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: 'spring', damping: 20 }}
-                            style={{
-                                maxWidth: '90%',
-                                maxHeight: '90%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
+                            className="w-full h-full flex items-center justify-center"
                             onClick={e => e.stopPropagation()}
                         >
                             {isImage ? (
                                 <img
                                     src={fileUrl}
                                     alt={currentDoc.document_type}
+                                    className="max-w-full max-h-full object-contain shadow-2xl rounded-sm transition-transform duration-200"
                                     style={{
-                                        maxWidth: '100%',
-                                        maxHeight: '100%',
-                                        objectFit: 'contain',
                                         transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                                        transition: 'transform 0.2s',
-                                        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-                                        borderRadius: '4px'
                                     }}
                                 />
                             ) : isPDF ? (
                                 <iframe
                                     src={fileUrl}
-                                    style={{
-                                        width: '80vw',
-                                        height: '80vh',
-                                        border: 'none',
-                                        background: 'white',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
-                                    }}
+                                    className="w-full max-w-5xl h-full bg-white rounded-xl shadow-2xl"
                                     title="PDF Viewer"
                                 />
                             ) : (
-                                <div style={{ background: 'white', padding: '3rem', borderRadius: '16px', textAlign: 'center' }}>
-                                    <FileText size={64} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
-                                    <p style={{ color: 'var(--text-main)', fontWeight: '600' }}>Format non supporté pour la prévisualisation</p>
-                                    <a href={fileUrl} className="btn btn-primary" style={{ marginTop: '1rem' }}>Télécharger le fichier</a>
+                                <div className="bg-white p-12 rounded-3xl text-center max-w-sm">
+                                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                        <FileText size={40} />
+                                    </div>
+                                    <h4 className="text-slate-900 font-bold text-lg mb-2">Format non supporté</h4>
+                                    <p className="text-slate-500 text-sm mb-8 leading-relaxed">Nous ne pouvons pas prévisualiser ce type de fichier directement.</p>
+                                    <a href={fileUrl} className="btn btn-primary w-full py-3">Télécharger le fichier</a>
                                 </div>
                             )}
                         </motion.div>

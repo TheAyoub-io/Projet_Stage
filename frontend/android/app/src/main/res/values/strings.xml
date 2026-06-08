@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Internat Admission</string>
+    <string name="title_activity_main">Internat Admission</string>
+    <string name="package_name">com.internat.admission</string>
+    <string name="custom_url_scheme">com.internat.admission</string>
+</resources>

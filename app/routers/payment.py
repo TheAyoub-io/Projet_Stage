@@ -91,3 +91,28 @@ async def stripe_webhook(
                 db.commit()
 
     return {"status": "success"}
+
+@router.post("/mock-success")
+def mock_payment_success(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mock endpoint for local development without ngrok/webhooks.
+    Call this when returning from Stripe checkout with success to mark the application as paid.
+    """
+    app = db.query(Application).filter(Application.user_id == current_user.id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+        
+    if not app.is_paid:
+        app.is_paid = True
+        from ..models.models import StatusHistory
+        db.add(StatusHistory(
+            application_id=app.id,
+            status=app.status,
+            comment="Frais d'inscription payés (Simulation Dev)"
+        ))
+        db.commit()
+        
+    return {"message": "Payment verified successfully"}

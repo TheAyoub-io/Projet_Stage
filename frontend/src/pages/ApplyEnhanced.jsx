@@ -228,6 +228,7 @@ const ApplyForm = ({ editMode }) => {
 
       form.setSubmitError(errorMessage);
       toast.error(errorMessage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -248,8 +249,8 @@ const ApplyForm = ({ editMode }) => {
 
   const citiesOptions = form.values.province
     ? CITIES_BY_PROVINCE_DATA[form.values.province]
-        ?.map((c) => ({ value: c.key, label: getLabel(c, language) }))
-        .sort((a, b) => a.label.localeCompare(b.label)) || []
+      ?.map((c) => ({ value: c.key, label: getLabel(c, language) }))
+      .sort((a, b) => a.label.localeCompare(b.label)) || []
     : [];
 
   const filieresToShow =
@@ -260,14 +261,14 @@ const ApplyForm = ({ editMode }) => {
   const niveauOptions =
     form.values.studentType === 'CPGE'
       ? [
-          { value: '1st_year', label: t('1st_year') },
-          { value: '2nd_year', label: t('2nd_year') },
-        ]
+        { value: '1st_year', label: t('1st_year') },
+        { value: '2nd_year', label: t('2nd_year') },
+      ]
       : [
-          { value: 'tronc_commun', label: t('tronc_commun') },
-          { value: '1BAC', label: '1BAC' },
-          { value: '2BAC', label: '2BAC' },
-        ];
+        { value: 'tronc_commun', label: t('tronc_commun') },
+        { value: '1BAC', label: '1BAC' },
+        { value: '2BAC', label: '2BAC' },
+      ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -284,13 +285,12 @@ const ApplyForm = ({ editMode }) => {
                 <motion.div className="flex flex-col items-center gap-1">
                   <motion.div
                     whileHover={{ scale: 1.05 }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                      isCompleted
-                        ? 'bg-green-600 text-white'
-                        : isActive
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${isCompleted
+                      ? 'bg-green-600 text-white'
+                      : isActive
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                    }`}
+                      }`}
                   >
                     {isCompleted ? <CheckCircle size={20} /> : <Icon size={20} />}
                   </motion.div>
@@ -299,9 +299,8 @@ const ApplyForm = ({ editMode }) => {
 
                 {i < steps.length - 1 && (
                   <div
-                    className={`h-0.5 w-12 transition-colors ${
-                      isCompleted ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'
-                    }`}
+                    className={`h-0.5 w-12 transition-colors ${isCompleted ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
                   />
                 )}
               </React.Fragment>

@@ -4,8 +4,8 @@ from typing import List, Dict
 import json
 
 from ..models.database import get_db
-from ..models.models import ChatMessage, User, Application
-from ..auth.dependencies import get_current_user, get_user_from_token
+from ..models.models import ChatMessage, User, Application, UserRole
+from ..auth.dependencies import get_current_user, get_current_admin, get_user_from_token
 from ..schemas.chat import ChatMessageSchema, ChatMessageCreate
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -45,7 +45,7 @@ def get_chat_history(
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
     
-    if current_user.role != "admin" and app.user_id != current_user.id:
+    if current_user.role != UserRole.ADMIN and app.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this chat")
 
     messages = db.query(ChatMessage).filter(ChatMessage.application_id == application_id).order_by(ChatMessage.created_at.asc()).all()
@@ -66,7 +66,7 @@ async def websocket_endpoint(
 
     # Check access to application
     app = db.query(Application).filter(Application.id == application_id).first()
-    if not app or (user.role != "admin" and app.user_id != user.id):
+    if not app or (user.role != UserRole.ADMIN and app.user_id != user.id):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
@@ -85,7 +85,7 @@ async def websocket_endpoint(
             db.add(new_msg)
             
             # Update app flag
-            if user.role == "admin":
+            if user.role == UserRole.ADMIN:
                 app.has_new_message = True # Mark for student
             else:
                 # If student sends, maybe mark for admin (already tracked by queries usually)

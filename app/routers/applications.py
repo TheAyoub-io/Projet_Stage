@@ -61,6 +61,7 @@ async def submit_application(
     grade_average: Decimal = Form(...),
     cin_copy: UploadFile = File(...),
     transcript: UploadFile = File(...),
+    signature: str = Form(...),
     fee_receipt: Optional[UploadFile] = File(None),
     payment_id: Optional[str] = Form(None),
     residency_cert: Optional[UploadFile] = File(None),
@@ -117,7 +118,8 @@ async def submit_application(
         user_id=current_user.id,
         student_type=student_type,
         filière=filière,
-        grade_average=grade_average
+        grade_average=grade_average,
+        signature=signature
     )
     db.add(application)
     db.commit()
@@ -147,6 +149,7 @@ async def submit_application(
         status=ApplicationStatus.PENDING,
         comment="Candidature soumise avec succès."
     ))
+    db.commit()
     # 7. Notification for student
     create_notification(
         db,
@@ -247,6 +250,7 @@ async def update_application(
     grade_average: Decimal = Form(...),
     cin_copy: Optional[UploadFile] = File(None),
     transcript: Optional[UploadFile] = File(None),
+    signature: str = Form(...),
     fee_receipt: Optional[UploadFile] = File(None),
     payment_id: Optional[str] = Form(None),
     residency_cert: Optional[UploadFile] = File(None),
@@ -300,6 +304,7 @@ async def update_application(
     application.student_type = student_type
     application.filière = filière
     application.grade_average = grade_average
+    application.signature = signature
     
     # 5. Handle File Uploads via Service (Optional updates)
     def update_document(doc_type, upload_file):
@@ -346,6 +351,7 @@ async def update_application(
         status=ApplicationStatus.PENDING,
         comment="Candidature mise à jour par l'étudiant."
     ))
+    db.commit()
     # Notification for student
     create_notification(
         db,
@@ -420,18 +426,26 @@ def send_chat_message(
     db.refresh(application)
 
     # Create Notification for the receiver
-    receiver_id = application.user_id if current_user.role == UserRole.ADMIN else db.query(User).filter(User.role == UserRole.ADMIN).first().id
+    if current_user.role == UserRole.ADMIN:
+        receiver_id = application.user_id
+    else:
+        admin_user = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if admin_user:
+            receiver_id = admin_user.id
+        else:
+            receiver_id = None # Do not send notification if no admin exists
     
-    notif_title = "Nouveau message de support" if current_user.role == UserRole.ADMIN else f"Nouveau message de {current_user.profile.full_name if current_user.profile else current_user.email}"
-    
-    create_notification(
-        db,
-        receiver_id,
-        notif_title,
-        payload.message[:100] + ("..." if len(payload.message) > 100 else ""),
-        "message",
-        application.id
-    )
+    if receiver_id:
+        notif_title = "Nouveau message de support" if current_user.role == UserRole.ADMIN else f"Nouveau message de {current_user.profile.full_name if current_user.profile else current_user.email}"
+        
+        create_notification(
+            db,
+            receiver_id,
+            notif_title,
+            payload.message[:100] + ("..." if len(payload.message) > 100 else ""),
+            "message",
+            application.id
+        )
     db.refresh(msg)
 
     sender_profile = db.query(Profile).filter(Profile.user_id == msg.sender_id).first()

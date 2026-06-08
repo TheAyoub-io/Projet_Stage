@@ -136,7 +136,7 @@ const Apply = () => {
   if (dataLoading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
 
   if (success) return (
-    <div className="container mx-auto px-6 py-20 flex justify-center">
+    <div className="container mx-auto px-6 pt-32 pb-20 flex justify-center">
       <div className="glass-panel p-12 text-center max-w-md">
         <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle size={48} />
@@ -148,7 +148,7 @@ const Apply = () => {
   );
 
   return (
-    <div className="container mx-auto px-6 py-12">
+    <div className="container mx-auto px-6 pt-32 pb-12">
       <div className="max-w-2xl mx-auto">
         <div className="mb-10">
           <h1 className="text-3xl font-black mb-2">{editMode ? t("update") : t("apply_now")}</h1>
@@ -160,9 +160,8 @@ const Apply = () => {
           <div className="absolute top-5 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-800 -z-10"></div>
           {steps.map((s) => (
             <div key={s.num} className="flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold border-2 ${
-                step >= s.num ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold border-2 ${step >= s.num ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400'
+                }`}>
                 {step > s.num ? <CheckCircle size={20} /> : <s.icon size={18} />}
               </div>
               <span className={`text-[10px] uppercase tracking-tighter font-black mt-3 ${step >= s.num ? 'text-blue-600' : 'text-slate-400'}`}>{s.label}</span>
@@ -189,8 +188,8 @@ const Apply = () => {
                   <div className="space-y-1">
                     <label className="form-label">{t("phone")}</label>
                     <div className="relative">
-                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                       <input className="form-input pl-10" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="0612345678" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input className="form-input pl-10" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="0612345678" />
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -214,8 +213,8 @@ const Apply = () => {
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label">{t("address")}</label>
                     <div className="relative">
-                        <MapPin className="absolute left-3 top-3 text-slate-400" size={16} />
-                        <textarea className="form-input pl-10 h-24 pt-2" value={address} onChange={e => setAddress(e.target.value)} required placeholder={t("current_address")} />
+                      <MapPin className="absolute left-3 top-3 text-slate-400" size={16} />
+                      <textarea className="form-input pl-10 h-24 pt-2" value={address} onChange={e => setAddress(e.target.value)} required placeholder={t("current_address")} />
                     </div>
                   </div>
                 </div>
@@ -288,11 +287,11 @@ const Apply = () => {
           <div className="flex justify-between items-center pt-10 border-t border-slate-50 dark:border-slate-800">
             {step > 1 ? (
               <button type="button" className="btn btn-outline px-8" onClick={() => setStep(s => s - 1)}>
-                 <ChevronLeft size={18} className="mr-2" /> {t("back")}
+                <ChevronLeft size={18} className="mr-2" /> {t("back")}
               </button>
             ) : (
               <button type="button" className="text-slate-400 font-bold hover:text-slate-600" onClick={() => navigate('/dashboard')}>
-                 {t("cancel")}
+                {t("cancel")}
               </button>
             )}
 
@@ -323,7 +322,7 @@ const FileUploadBox = ({ id, label, file, onFileChange, icon: Icon }) => (
       {file ? <CheckCircle size={24} /> : <Icon size={24} />}
     </div>
     <p className={`text-xs font-bold uppercase tracking-widest ${file ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 group-hover:text-blue-600'}`}>
-       {file ? 'Fichier sélectionné' : label}
+      {file ? 'Fichier sélectionné' : label}
     </p>
     {file && <p className="text-[10px] text-emerald-600 truncate mt-1 font-medium">{file.name}</p>}
   </div>

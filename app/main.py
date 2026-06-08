@@ -19,8 +19,11 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",      # Vite default port
     "http://127.0.0.1:5173",
-    "http://localhost:5174",      # Vite fallback port
+    "http://localhost:5174",    
     "http://127.0.0.1:5174",
+    "http://localhost",           # Capacitor default Android origin
+    "capacitor://localhost",      # Capacitor default iOS origin
+    "ionic://localhost",          # Alternative mobile origin
 ]
 
 app.add_middleware(

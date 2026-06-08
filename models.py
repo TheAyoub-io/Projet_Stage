@@ -30,6 +30,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(Text, nullable=False)
+    signature = Column(Text, nullable=True)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.STUDENT)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -65,6 +66,7 @@ class Application(Base):
     student_type = Column(Enum(StudentType), nullable=False)
     filière = Column(String(255), nullable=False)
     grade_average = Column(Numeric(4, 2), nullable=False)
+    signature = Column(Text, nullable=True)
     status = Column(Enum(ApplicationStatus), nullable=False, default=ApplicationStatus.PENDING)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
 

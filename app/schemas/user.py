@@ -8,6 +8,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    signature: Optional[str] = None
 
 class UserLogin(UserBase):
     password: str
@@ -16,6 +17,7 @@ class UserResponse(UserBase):
     id: int
     role: UserRole
     created_at: datetime
+    signature: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

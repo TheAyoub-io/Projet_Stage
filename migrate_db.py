@@ -21,6 +21,18 @@ def run_migration():
             else:
                 print(f"Error adding gender column: {e}")
 
+        # Add signature to applications if missing
+        try:
+            conn.execute(text("ALTER TABLE applications ADD COLUMN signature TEXT"))
+            conn.commit()
+            print("Added 'signature' column to 'applications' table.")
+        except Exception as e:
+            conn.rollback()
+            if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                print("'signature' column already exists in 'applications'.")
+            else:
+                print(f"Error adding signature column: {e}")
+
         # Ensure AuditLog table exists (Manually since I don't want to import models to avoid path issues)
         try:
             conn.execute(text("""

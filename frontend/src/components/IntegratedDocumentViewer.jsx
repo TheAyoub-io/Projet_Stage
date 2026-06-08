@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ZoomIn, ZoomOut, RotateCw, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../lib/axios';
 
 const IntegratedDocumentViewer = ({ isOpen, onClose, documents, initialIndex = 0 }) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -12,7 +13,7 @@ const IntegratedDocumentViewer = ({ isOpen, onClose, documents, initialIndex = 0
     const currentDoc = documents[currentIndex];
     const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(currentDoc.file_url);
     const isPDF = /\.pdf$/i.test(currentDoc.file_url);
-    const fileUrl = `http://localhost:8000/${currentDoc.file_url}`;
+    const fileUrl = `${API_BASE_URL}/${currentDoc.file_url}`;
 
     const handleNext = () => {
         setCurrentIndex((prev) => (prev + 1) % documents.length);

@@ -73,6 +73,7 @@ class Application(Base):
     admin_feedback = Column(Text, nullable=True)
     has_new_message = Column(Boolean, default=False)
     is_paid = Column(Boolean, default=False)
+    signature = Column(Text, nullable=True)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

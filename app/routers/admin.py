@@ -34,7 +34,7 @@ router = APIRouter(
 def list_applications(
     status_filter: Optional[ApplicationStatus] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=10000),
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
@@ -42,6 +42,7 @@ def list_applications(
     query = db.query(Application).options(
         joinedload(Application.documents),
         joinedload(Application.user).joinedload(User.profile),
+        joinedload(Application.history),
     )
 
     if status_filter:
@@ -62,7 +63,12 @@ def list_applications(
                 grade_average=app.grade_average,
                 status=app.status,
                 submitted_at=app.submitted_at,
+                admin_feedback=app.admin_feedback,
+                has_new_message=app.has_new_message,
+                is_paid=app.is_paid,
+                room=app.room,
                 documents=app.documents,
+                history=app.history,
                 student_email=app.user.email,
                 profile=profile,
             )
@@ -86,6 +92,7 @@ def get_application(
     app = db.query(Application).options(
         joinedload(Application.documents),
         joinedload(Application.user).joinedload(User.profile),
+        joinedload(Application.history),
     ).filter(Application.id == application_id).first()
 
     if not app:
@@ -184,13 +191,22 @@ def get_application_stats(
     admin: User = Depends(get_current_admin),
 ):
     """Return accurate aggregate counts for all applications (no pagination)."""
-    total    = db.query(Application).count()
-    pending  = db.query(Application).filter(Application.status == ApplicationStatus.PENDING).count()
+    pending = db.query(Application).filter(Application.status == ApplicationStatus.PENDING).count()
     approved = db.query(Application).filter(Application.status == ApplicationStatus.APPROVED).count()
     rejected = db.query(Application).filter(Application.status == ApplicationStatus.REJECTED).count()
-    waitlisted = db.query(Application).filter(Application.status == ApplicationStatus.WAITLISTED).count()
     incomplete = db.query(Application).filter(Application.status == ApplicationStatus.INCOMPLETE).count()
-    return {"total": total, "pending": pending, "approved": approved, "rejected": rejected, "waitlisted": waitlisted, "incomplete": incomplete}
+    waitlisted = db.query(Application).filter(Application.status == ApplicationStatus.WAITLISTED).count()
+
+    total = pending + approved + rejected + incomplete + waitlisted
+
+    return {
+        "total": total,
+        "pending": pending,
+        "approved": approved,
+        "rejected": rejected,
+        "incomplete": incomplete,
+        "waitlisted": waitlisted
+    }
 
 
 @router.get("/analytics")

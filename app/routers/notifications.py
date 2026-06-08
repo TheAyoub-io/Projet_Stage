@@ -57,6 +57,15 @@ def mark_all_as_read(
     db.commit()
     return {"message": "All notifications marked as read"}
 
+@router.delete("/")
+def clear_all_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db.query(Notification).filter(Notification.user_id == current_user.id).delete()
+    db.commit()
+    return {"message": "All notifications cleared"}
+
 @router.delete("/{notification_id}")
 def delete_notification(
     notification_id: int,
@@ -73,12 +82,3 @@ def delete_notification(
     db.delete(notification)
     db.commit()
     return {"message": "Notification deleted"}
-
-@router.delete("/")
-def clear_all_notifications(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    db.query(Notification).filter(Notification.user_id == current_user.id).delete()
-    db.commit()
-    return {"message": "All notifications cleared"}

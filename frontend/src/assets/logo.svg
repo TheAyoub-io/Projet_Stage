@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <!-- Top Petal Gradient: Vibrant Blue to Royal Blue -->
+    <linearGradient id="grad1" x1="100" y1="30" x2="100" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    
+    <!-- Bottom Right Petal: Indigo to Deep Blue -->
+    <linearGradient id="grad2" x1="100" y1="30" x2="100" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#1E3A8A" />
+    </linearGradient>
+    
+    <!-- Bottom Left Petal: Cyan to Primary Blue -->
+    <linearGradient id="grad3" x1="100" y1="30" x2="100" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2DD4BF" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    
+    <!-- Outer Glow for a premium feel -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1E3A8A" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <g filter="url(#glow)">
+    <!-- Top Petal -->
+    <path d="M 100 25 C 150 25 150 100 100 125 C 50 100 50 25 100 25 Z" fill="url(#grad1)" opacity="0.85" />
+    
+    <!-- Bottom Right Petal -->
+    <path d="M 100 25 C 150 25 150 100 100 125 C 50 100 50 25 100 25 Z" fill="url(#grad2)" opacity="0.85" transform="rotate(120 100 100)" />
+    
+    <!-- Bottom Left Petal -->
+    <path d="M 100 25 C 150 25 150 100 100 125 C 50 100 50 25 100 25 Z" fill="url(#grad3)" opacity="0.85" transform="rotate(240 100 100)" />
+  </g>
+  
+  <!-- Central Star / Light Core -->
+  <circle cx="100" cy="100" r="12" fill="#FFFFFF" opacity="0.95" />
+</svg>

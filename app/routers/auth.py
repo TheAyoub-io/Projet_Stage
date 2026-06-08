@@ -35,7 +35,13 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
-@router.post("/login", response_model=Token)
+from pydantic import BaseModel
+
+class Verify2FARequest(BaseModel):
+    temp_token: str
+    code: str
+
+@router.post("/login")
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
     # Check user existence
     user = db.query(User).filter(User.email == user_in.email).first()
@@ -47,8 +53,44 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         )
     
     # Create access token directly (2FA removed per user request)
-    access_token = create_access_token(data={"sub": user.email, "role": user.role})
+    access_token = create_access_token(data={"sub": user.email, "role": user.role.value})
     return {"access_token": access_token, "token_type": "bearer"}
+
+from jose import JWTError, jwt
+from ..auth.jwt_handler import SECRET_KEY, ALGORITHM
+
+@router.post("/verify-2fa")
+def verify_2fa(request: Verify2FARequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(request.temp_token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        token_type = payload.get("type")
+        if not email or token_type != "2fa_temp":
+            raise HTTPException(status_code=401, detail="Invalid temporary token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid temporary token")
+        
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+        
+    # Check OTP
+    tft = db.query(TwoFactorToken).filter(TwoFactorToken.user_id == user.id).first()
+    if not tft or tft.token != request.code:
+        raise HTTPException(status_code=401, detail="Invalid OTP code")
+        
+    if tft.expires_at < datetime.now(timezone.utc):
+        db.delete(tft)
+        db.commit()
+        raise HTTPException(status_code=401, detail="OTP code expired")
+        
+    # Valid OTP
+    db.delete(tft)
+    db.commit()
+    
+    access_token = create_access_token(data={"sub": user.email, "role": user.role.value})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 
 
 import random

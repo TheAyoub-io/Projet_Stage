@@ -55,6 +55,11 @@ const AdminDashboard = () => {
 
   useEffect(() => { fetchApplications(); }, [fetchApplications]);
 
+  const handleStatusChange = () => {
+    fetchApplications();
+    // also trigger stats reload if needed, but fetchApplications is minimum required to update table
+  };
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -74,10 +79,28 @@ const AdminDashboard = () => {
     setExporting(true);
     try {
       const res = await api.get('/admin/applications', { params: { limit: 1000 } });
-      const worksheet = XLSX.utils.json_to_sheet(res.data.items);
+      const flatData = res.data.items.map(app => ({
+        "ID": app.id,
+        "Nom complet": app.profile?.full_name || 'N/A',
+        "Email": app.student_email || 'N/A',
+        "Téléphone": app.profile?.phone || 'N/A',
+        "CIN": app.profile?.cin || 'N/A',
+        "Sexe": app.profile?.gender || 'N/A',
+        "Ville": app.profile?.city || 'N/A',
+        "Type": app.student_type || 'N/A',
+        "Filière": app.filière || app.filiere || 'N/A',
+        "Moyenne": app.grade_average || 'N/A',
+        "Statut": app.status || 'N/A',
+        "Chambre": app.room?.room_number || 'Non affectée',
+        "Date de candidature": app.created_at ? new Date(app.created_at).toLocaleDateString() : 'N/A'
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(flatData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Candidatures");
       XLSX.writeFile(workbook, "Candidatures_Internat.xlsx");
+    } catch (err) {
+      console.error("Excel Export Error:", err);
+      toast.error("Erreur d'exportation Excel. Veuillez réessayer.");
     } finally { setExporting(false); }
   };
 
@@ -91,7 +114,7 @@ const AdminDashboard = () => {
   const COLORS = ['#1e3a8a', '#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444'];
 
   return (
-    <div className="container mx-auto px-6 py-10">
+    <div className="container mx-auto px-6 pt-32 pb-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
         <div>
           <h1 className="text-3xl font-extrabold flex items-center gap-3 mb-2">
@@ -119,11 +142,10 @@ const AdminDashboard = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              activeTab === tab.id
-                ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id
+              ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
           >
             <tab.icon size={18} />
             {tab.label}
@@ -148,144 +170,144 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-             <div className="glass-panel p-8">
-                <h3 className="text-lg font-bold mb-8">Répartition par Statut</h3>
-                <div className="h-[300px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                         <Pie
-                            data={[
-                              { name: 'Approuvés', value: stats.approved, fill: '#10b981' },
-                              { name: 'En attente', value: stats.pending, fill: '#f59e0b' },
-                              { name: 'Incomplets', value: stats.incomplete, fill: '#ec4899' },
-                              { name: 'Rejetés', value: stats.rejected, fill: '#ef4444' }
-                            ]}
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={5}
-                            dataKey="value"
-                            cornerRadius={6}
-                         />
-                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                         <Legend iconType="circle" />
-                      </PieChart>
-                   </ResponsiveContainer>
-                </div>
-             </div>
-             <div className="glass-panel p-8">
-                <h3 className="text-lg font-bold mb-8">Distribution par Filière</h3>
-                <div className="h-[300px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={analytics.by_filiere?.slice(0, 5)}>
-                         <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                         <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                         <YAxis tick={{ fontSize: 10 }} />
-                         <Tooltip cursor={{ fill: 'transparent' }} />
-                         <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
-                            {analytics.by_filiere?.map((entry, index) => (
-                               <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                         </Bar>
-                      </BarChart>
-                   </ResponsiveContainer>
-                </div>
-             </div>
+            <div className="glass-panel p-8">
+              <h3 className="text-lg font-bold mb-8">Répartition par Statut</h3>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Approuvés', value: stats.approved, fill: '#10b981' },
+                        { name: 'En attente', value: stats.pending, fill: '#f59e0b' },
+                        { name: 'Incomplets', value: stats.incomplete, fill: '#ec4899' },
+                        { name: 'Rejetés', value: stats.rejected, fill: '#ef4444' }
+                      ]}
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                      cornerRadius={6}
+                    />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                    <Legend iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="glass-panel p-8">
+              <h3 className="text-lg font-bold mb-8">Distribution par Filière</h3>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.by_filiere?.slice(0, 5)}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
+                      {analytics.by_filiere?.map((entry, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {activeTab === 'applications' && (
         <div className="space-y-6">
-           <div className="glass-panel p-4 flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1">
-                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                 <input
-                    className="form-input pl-12 bg-slate-50 dark:bg-slate-900 border-none h-12"
-                    placeholder="Chercher par nom, email ou CIN..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                 />
-              </div>
-              <select
-                className="form-input w-full md:w-56 h-12 bg-slate-50 dark:bg-slate-900 border-none font-semibold text-slate-600"
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-              >
-                <option value="">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="approved">Approuvés</option>
-                <option value="incomplete">Incomplets</option>
-                <option value="rejected">Rejetés</option>
-              </select>
-           </div>
+          <div className="glass-panel p-4 flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                className="form-input pl-12 bg-slate-50 dark:bg-slate-900 border-none h-12"
+                placeholder="Chercher par nom, email ou CIN..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <select
+              className="form-input w-full md:w-56 h-12 bg-slate-50 dark:bg-slate-900 border-none font-semibold text-slate-600"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="">Tous les statuts</option>
+              <option value="pending">En attente</option>
+              <option value="approved">Approuvés</option>
+              <option value="incomplete">Incomplets</option>
+              <option value="rejected">Rejetés</option>
+            </select>
+          </div>
 
-           {loading ? (
-             <SkeletonTable rows={8} />
-           ) : (
-             <div className="glass-panel overflow-hidden border-none">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                        <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Étudiant</th>
-                        <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Filière / Type</th>
-                        <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Moyenne</th>
-                        <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Statut</th>
-                        <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                      {applications.filter(app => {
-                         const q = searchQuery.toLowerCase();
-                         const p = app.profile || {};
-                         return (p.full_name || '').toLowerCase().includes(q) || (app.student_email || '').toLowerCase().includes(q) || (p.cin || '').toLowerCase().includes(q);
-                      }).map(app => (
-                        <tr key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center font-bold uppercase">
-                                  {app.profile?.full_name?.charAt(0) || 'E'}
-                               </div>
-                               <div>
-                                  <p className="font-bold text-slate-800 dark:text-slate-100 leading-none mb-1">{app.profile?.full_name || 'Inconnu'}</p>
-                                  <p className="text-xs text-slate-400 font-medium">{app.student_email}</p>
-                               </div>
+          {loading ? (
+            <SkeletonTable rows={8} />
+          ) : (
+            <div className="glass-panel overflow-hidden border-none">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+                      <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Étudiant</th>
+                      <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Filière / Type</th>
+                      <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Moyenne</th>
+                      <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Statut</th>
+                      <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                    {applications.filter(app => {
+                      const q = searchQuery.toLowerCase();
+                      const p = app.profile || {};
+                      return (p.full_name || '').toLowerCase().includes(q) || (app.student_email || '').toLowerCase().includes(q) || (p.cin || '').toLowerCase().includes(q);
+                    }).map(app => (
+                      <tr key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center font-bold uppercase">
+                              {app.profile?.full_name?.charAt(0) || 'E'}
                             </div>
-                          </td>
-                          <td className="px-6 py-5 text-sm font-medium">
-                            <p className="text-slate-700 dark:text-slate-300 mb-1">{app.filière}</p>
-                            <p className="text-xs text-slate-400 uppercase font-bold">{app.student_type}</p>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                             <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg font-black">
-                                {parseFloat(app.grade_average).toFixed(2)}
-                             </span>
-                          </td>
-                          <td className="px-6 py-5">
-                             <StatusBadge status={app.status} />
-                          </td>
-                          <td className="px-6 py-5 text-right">
-                             <button onClick={() => setViewingApp(app)} className="btn btn-primary px-4 py-2 text-sm shadow-none">
-                                Détails
-                             </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            <div>
+                              <p className="font-bold text-slate-800 dark:text-slate-100 leading-none mb-1">{app.profile?.full_name || 'Inconnu'}</p>
+                              <p className="text-xs text-slate-400 font-medium">{app.student_email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-sm font-medium">
+                          <p className="text-slate-700 dark:text-slate-300 mb-1">{app.filière}</p>
+                          <p className="text-xs text-slate-400 uppercase font-bold">{app.student_type}</p>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg font-black">
+                            {parseFloat(app.grade_average).toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <StatusBadge status={app.status} />
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <button onClick={() => setViewingApp(app)} className="btn btn-primary px-4 py-2 text-sm shadow-none">
+                            Détails
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-                {totalPages > 1 && (
-                  <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                     <p className="text-sm font-bold text-slate-400">Page {page} sur {totalPages}</p>
-                     <div className="flex gap-2">
-                        <button onClick={() => setPage(p => p - 1)} disabled={page === 1} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30"><ChevronLeft size={18} /></button>
-                        <button onClick={() => setPage(p => p + 1)} disabled={page === totalPages} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30"><ChevronRight size={18} /></button>
-                     </div>
+              {totalPages > 1 && (
+                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                  <p className="text-sm font-bold text-slate-400">Page {page} sur {totalPages}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setPage(p => p - 1)} disabled={page === 1} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30"><ChevronLeft size={18} /></button>
+                    <button onClick={() => setPage(p => p + 1)} disabled={page === totalPages} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30"><ChevronRight size={18} /></button>
                   </div>
-                )}
-             </div>
-           )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -363,47 +385,47 @@ const SMSPanel = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 glass-panel p-0 overflow-hidden">
-         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <h3 className="font-bold">Étudiants inactifs ({students.length})</h3>
-            <button onClick={() => setSelected(selected.length === students.length ? [] : students.map(s => s.id))} className="text-xs font-bold text-blue-600">
-               {selected.length === students.length ? 'Tout désélectionner' : 'Tout sélectionner'}
-            </button>
-         </div>
-         <div className="max-h-[600px] overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
-            {loading ? <div className="p-10"><Skeleton className="h-40 w-full" /></div> : students.map(s => (
-              <div key={s.id} onClick={() => toggleSelect(s.id)} className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${selected.includes(s.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}>
-                 <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selected.includes(s.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300 dark:border-slate-600'}`}>
-                    {selected.includes(s.id) && <CheckSquare size={14} className="text-white" />}
-                 </div>
-                 <div className="flex-1">
-                    <p className="font-bold text-sm leading-none mb-1">{s.full_name}</p>
-                    <p className="text-xs text-slate-400">{s.phone} • {s.email}</p>
-                 </div>
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+          <h3 className="font-bold">Étudiants inactifs ({students.length})</h3>
+          <button onClick={() => setSelected(selected.length === students.length ? [] : students.map(s => s.id))} className="text-xs font-bold text-blue-600">
+            {selected.length === students.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+          </button>
+        </div>
+        <div className="max-h-[600px] overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
+          {loading ? <div className="p-10"><Skeleton className="h-40 w-full" /></div> : students.map(s => (
+            <div key={s.id} onClick={() => toggleSelect(s.id)} className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${selected.includes(s.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}>
+              <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selected.includes(s.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300 dark:border-slate-600'}`}>
+                {selected.includes(s.id) && <CheckSquare size={14} className="text-white" />}
               </div>
-            ))}
-         </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm leading-none mb-1">{s.full_name}</p>
+                <p className="text-xs text-slate-400">{s.phone} • {s.email}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="space-y-6">
-         <div className="glass-panel p-6">
-            <h4 className="font-bold mb-4 flex items-center gap-2"><Smartphone size={18} /> Rédiger le SMS</h4>
-            <textarea
-               className="form-input h-40 resize-none text-sm"
-               placeholder="Entrez votre message ici..."
-               value={message}
-               onChange={e => setMessage(e.target.value)}
-            />
-            <div className="flex justify-between items-center mt-4">
-               <span className="text-xs font-bold text-slate-400">{message.length}/160</span>
-               <button
-                  disabled={sending || !message.trim() || selected.length === 0}
-                  onClick={handleSend}
-                  className="btn btn-primary px-6 group"
-               >
-                  {sending ? '...' : 'Envoyer'}
-                  <Send size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
-               </button>
-            </div>
-         </div>
+        <div className="glass-panel p-6">
+          <h4 className="font-bold mb-4 flex items-center gap-2"><Smartphone size={18} /> Rédiger le SMS</h4>
+          <textarea
+            className="form-input h-40 resize-none text-sm"
+            placeholder="Entrez votre message ici..."
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+          />
+          <div className="flex justify-between items-center mt-4">
+            <span className="text-xs font-bold text-slate-400">{message.length}/160</span>
+            <button
+              disabled={sending || !message.trim() || selected.length === 0}
+              onClick={handleSend}
+              className="btn btn-primary px-6 group"
+            >
+              {sending ? '...' : 'Envoyer'}
+              <Send size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

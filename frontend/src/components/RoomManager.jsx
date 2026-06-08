@@ -28,8 +28,13 @@ const RoomManager = () => {
         try {
             const res = await api.get('/rooms/all');
             setRooms(res.data);
-        } catch {
-            toast.error("Échec du chargement des chambres.");
+        } catch (err) {
+            const detail = err.response?.data?.detail;
+            if (err.response?.status === 403) {
+                toast.error("Accès réservé aux administrateurs.");
+            } else {
+                toast.error(detail || "Échec du chargement des chambres.");
+            }
         } finally {
             setLoading(false);
         }
@@ -167,7 +172,7 @@ const RoomManager = () => {
                                 <div className="flex -space-x-2 overflow-hidden">
                                     {room.occupants.map((occ, i) => (
                                         <div key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-slate-900 bg-gradient-main flex items-center justify-center text-[10px] font-black text-white">
-                                            {occ.student_name.charAt(0)}
+                                            {(occ.student_name || '?').charAt(0).toUpperCase()}
                                         </div>
                                     ))}
                                     {Array.from({ length: room.capacity - room.occupants.length }).map((_, i) => (
@@ -215,7 +220,7 @@ const RoomManager = () => {
                                     selectedRoom.occupants.map(occ => (
                                         <div key={occ.id} className="glass-panel p-4 flex justify-between items-center group">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black">{occ.student_name.charAt(0)}</div>
+                                                <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black">{(occ.student_name || '?').charAt(0).toUpperCase()}</div>
                                                 <div>
                                                     <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">{occ.student_name}</p>
                                                     <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{occ.filiere}</p>

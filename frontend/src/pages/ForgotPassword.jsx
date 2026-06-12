@@ -3,28 +3,28 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, ChevronLeft, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import api from '../lib/axios';
 import { useTranslation } from 'react-i18next';
+import { useForgotPassword } from '../hooks/useAuth';
 const logoImg = '/app_logo.png';
 
 const ForgotPassword = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState({ type: '', message: '' });
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { mutate: forgotPassword, isPending: loading } = useForgotPassword();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
     setStatus({ type: '', message: '' });
-    try {
-      const response = await api.post('/auth/forgot-password', { email });
-      setStatus({ type: 'success', message: response.data.message || t('forgot_password_success') });
-      setTimeout(() => navigate('/reset-password'), 1500);
-    } catch (err) {
-      setStatus({ type: 'danger', message: err.response?.data?.detail || t('error_occurred') });
-    } finally {
-      setLoading(false);
-    }
+    forgotPassword({ email }, {
+      onSuccess: (response) => {
+        setStatus({ type: 'success', message: response.message || t('forgot_password_success') });
+        setTimeout(() => navigate('/reset-password'), 1500);
+      },
+      onError: (err) => {
+        setStatus({ type: 'danger', message: err.response?.data?.detail || t('error_occurred') });
+      }
+    });
   };
 
   return (

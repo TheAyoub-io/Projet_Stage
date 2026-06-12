@@ -27,6 +27,7 @@ VALID_PAYLOAD = {
     "student_type": "CPGE",
     "filière": "MPSI",
     "grade_average": "17.50",
+    "signature": "data:image/png;base64,iVBORw0KGgo=",
 }
 
 
@@ -200,9 +201,9 @@ class TestPagination:
         assert res.status_code == 422
 
     def test_pagination_limit_too_large(self, client, admin_token):
-        """limit > 100 is rejected with 422."""
+        """limit > 10000 is rejected with 422."""
         res = client.get(
-            "/admin/applications?limit=101",
+            "/admin/applications?limit=10001",
             headers={"Authorization": f"Bearer {admin_token}"}
         )
         assert res.status_code == 422

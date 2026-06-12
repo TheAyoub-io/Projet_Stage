@@ -1,0 +1,61 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.2, pluggy-1.6.0 -- C:\Program Files\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Lenovo\Documents\BTS-2026\Projet_Stage_
+configfile: pytest.ini
+plugins: anyio-3.7.1, asyncio-1.3.0, Faker-40.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 11 items
+
+tests/test_admin.py::TestAdminListApplications::test_list_empty PASSED   [  9%]
+tests/test_admin.py::TestAdminListApplications::test_list_after_application FAILED [ 18%]
+tests/test_admin.py::TestAdminListApplications::test_list_filter_by_pending PASSED [ 27%]
+tests/test_admin.py::TestAdminListApplications::test_list_filter_by_approved_returns_empty PASSED [ 36%]
+tests/test_admin.py::TestAdminListApplications::test_student_cannot_list PASSED [ 45%]
+tests/test_admin.py::TestAdminListApplications::test_unauthenticated_cannot_list PASSED [ 54%]
+tests/test_admin.py::TestAdminUpdateStatus::test_approve_application FAILED [ 63%]
+tests/test_admin.py::TestAdminUpdateStatus::test_reject_application FAILED [ 72%]
+tests/test_admin.py::TestAdminUpdateStatus::test_update_nonexistent_application PASSED [ 81%]
+tests/test_admin.py::TestAdminUpdateStatus::test_student_cannot_update_status FAILED [ 90%]
+tests/test_admin.py::TestAdminUpdateStatus::test_status_reflected_in_student_view FAILED [100%]
+
+================================== FAILURES ===================================
+____________ TestAdminListApplications.test_list_after_application ____________
+tests\test_admin.py:58: in test_list_after_application
+    assert len(apps) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+_______________ TestAdminUpdateStatus.test_approve_application ________________
+tests\test_admin.py:107: in test_approve_application
+    app_id = apps["items"][0]["id"]
+             ^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+________________ TestAdminUpdateStatus.test_reject_application ________________
+tests\test_admin.py:124: in test_reject_application
+    app_id = apps["items"][0]["id"]
+             ^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+___________ TestAdminUpdateStatus.test_student_cannot_update_status ___________
+tests\test_admin.py:150: in test_student_cannot_update_status
+    app_id = apps["items"][0]["id"]
+             ^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+_________ TestAdminUpdateStatus.test_status_reflected_in_student_view _________
+tests\test_admin.py:166: in test_status_reflected_in_student_view
+    app_id = apps["items"][0]["id"]
+             ^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+============================== warnings summary ===============================
+..\..\..\AppData\Roaming\Python\Python313\site-packages\pydantic\_internal\_config.py:323
+..\..\..\AppData\Roaming\Python\Python313\site-packages\pydantic\_internal\_config.py:323
+  C:\Users\Lenovo\AppData\Roaming\Python\Python313\site-packages\pydantic\_internal\_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_admin.py::TestAdminListApplications::test_list_after_application
+FAILED tests/test_admin.py::TestAdminUpdateStatus::test_approve_application
+FAILED tests/test_admin.py::TestAdminUpdateStatus::test_reject_application - ...
+FAILED tests/test_admin.py::TestAdminUpdateStatus::test_student_cannot_update_status
+FAILED tests/test_admin.py::TestAdminUpdateStatus::test_status_reflected_in_student_view
+================== 5 failed, 6 passed, 2 warnings in 16.38s ===================

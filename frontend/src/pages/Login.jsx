@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import FormError from '../components/FormError';
 import { motion } from 'framer-motion';
+import { useLogin } from '../hooks/useAuth';
 
 function parseJwt(token) {
   try {
@@ -27,29 +28,39 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { mutate: login, isPending: loading } = useLogin();
 
-  const handleLogin = async (e) => {
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const payload = parseJwt(token);
+      if (payload && (!payload.exp || payload.exp * 1000 > Date.now())) {
+        if (payload.role === 'admin') navigate('/admin', { replace: true });
+        else navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [navigate]);
+
+  const handleLogin = (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      const token = response.data.access_token;
-      localStorage.setItem('token', token);
-      toast.success(t("success_login") || "Connexion réussie !");
+    login({ email, password }, {
+      onSuccess: (data) => {
+        const token = data.access_token;
+        localStorage.setItem('token', token);
+        toast.success(t("success_login") || "Connexion réussie !");
 
-      const payload = parseJwt(token);
-      if (payload?.role === 'admin') navigate('/admin');
-      else navigate('/dashboard');
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || t("error_login") || "Échec de la connexion";
-      setError(errMsg);
-    } finally {
-      setLoading(false);
-    }
+        const payload = parseJwt(token);
+        if (payload?.role === 'admin') navigate('/admin');
+        else navigate('/dashboard');
+      },
+      onError: (err) => {
+        const errMsg = err.response?.data?.detail || t("error_login") || "Échec de la connexion";
+        setError(errMsg);
+      }
+    });
   };
 
   return (

@@ -184,3 +184,29 @@ def send_otp_email(to_email: str, otp_code: str) -> None:
     </body></html>
     """
     _send(to_email, subject, body)
+
+def send_custom_email(to_email: str, full_name: str, message: str) -> None:
+    """Send a custom message from the admin."""
+    subject = "Message de l'administration — Internat"
+    # Convert newlines to <br> for HTML rendering
+    message_html = message.replace("\n", "<br>")
+    body = f"""
+    <html><body style="font-family:Arial,sans-serif;color:#333;">
+      <h2 style="color:#1976d2;">Bonjour {full_name},</h2>
+      <p>L'administration de l'internat vous a envoyé le message suivant :</p>
+      <div style="background:#e3f2fd;padding:15px;border-left:4px solid #1976d2;margin:15px 0;">
+        {message_html}
+      </div>
+      <p><b>Pour répondre à ce message ou continuer la conversation</b>, veuillez vous connecter à votre espace étudiant :</p>
+      <a href="{FRONTEND_URL}" style="
+           display:inline-block;padding:10px 20px;background:#1976d2;
+           color:white;border-radius:5px;text-decoration:none;margin-bottom:10px;">
+        Ouvrir la messagerie
+      </a>
+      <p style="margin-top:20px;font-size:12px;color:#888;">
+        Internat Admission System — Ne pas répondre à cet e-mail.
+      </p>
+    </body></html>
+    """
+    _send(to_email, subject, body)
+

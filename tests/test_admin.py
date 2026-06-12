@@ -20,6 +20,7 @@ VALID_PAYLOAD = {
     "student_type": "CPGE",
     "filière": "MPSI",
     "grade_average": "17.50",
+    "signature": "data:image/png;base64,iVBORw0KGgo=",
 }
 
 

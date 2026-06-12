@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
 from ..models.database import get_db
-from ..models.models import User, Application, Profile, ApplicationStatus, Room, StatusHistory, UserRole
+from ..models.models import User, Application, Profile, ApplicationStatus, Room, StatusHistory, UserRole, ChatMessage
 from ..services.audit import record_audit_log
 from ..services.notifications import create_notification
 from ..schemas.application import (
@@ -21,9 +21,10 @@ from ..services.email import (
     send_application_approved,
     send_application_rejected,
     send_application_incomplete,
-    send_application_waitlisted
+    send_application_waitlisted,
+    send_custom_email,
+    EMAILS_ENABLED
 )
-from ..services.sms import send_sms, SMS_ENABLED
 
 router = APIRouter(
     prefix="/admin",
@@ -247,18 +248,18 @@ def get_application_analytics(
     }
 
 
-# ─── SMS Service ──────────────────────────────────────────────────────────────
+# ─── Email Notification Service ───────────────────────────────────────────────
 
-class SMSPayload(BaseModel):
-    phone_numbers: List[str]
+class EmailPayload(BaseModel):
+    emails: List[str]
     message: str
 
-@router.get("/sms/status")
-def get_sms_status(admin: User = Depends(get_current_admin)):
-    """Return whether the SMS service is configured or in simulation mode."""
-    return {"enabled": SMS_ENABLED, "simulated": not SMS_ENABLED}
+@router.get("/email/status")
+def get_email_status(admin: User = Depends(get_current_admin)):
+    """Return whether the Email service is configured or in simulation mode."""
+    return {"enabled": EMAILS_ENABLED, "simulated": not EMAILS_ENABLED}
 
-@router.get("/sms/inactive-students")
+@router.get("/email/inactive-students")
 def get_inactive_students(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -278,30 +279,59 @@ def get_inactive_students(
             })
     return inactive
 
-@router.post("/sms/send")
-def send_bulk_sms(
-    payload: SMSPayload,
+@router.post("/email/send")
+def send_bulk_email(
+    payload: EmailPayload,
+    db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    """Send an SMS to a list of phone numbers."""
-    if not payload.phone_numbers:
-        raise HTTPException(status_code=400, detail="Aucun numéro de téléphone fourni.")
+    """Send an Email to a list of email addresses."""
+    if not payload.emails:
+        raise HTTPException(status_code=400, detail="Aucune adresse e-mail fournie.")
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Le message est vide.")
-    if len(payload.message) > 160:
-        raise HTTPException(status_code=400, detail="Le message dépasse 160 caractères.")
 
-    results = []
-    for number in payload.phone_numbers:
-        result = send_sms(to=number, message=payload.message)
-        results.append({"phone": number, **result})
+    sent = 0
+    failed = 0
+    for email in payload.emails:
+        try:
+            # Look up name
+            user = db.query(User).filter(User.email == email).first()
+            name = "Étudiant"
+            if user:
+                if user.profile and user.profile.full_name:
+                    name = user.profile.full_name
+                
+                # Send email
+                send_custom_email(to_email=email, full_name=name, message=payload.message)
+                
+                # Check if user has an application to add ChatMessage
+                application = db.query(Application).filter(Application.user_id == user.id).first()
+                if application:
+                    chat_msg = ChatMessage(
+                        application_id=application.id,
+                        sender_id=admin.id,
+                        message=payload.message
+                    )
+                    db.add(chat_msg)
+                    application.has_new_message = True
+                    db.commit()
 
-    sent = sum(1 for r in results if r.get("success"))
-    failed = len(results) - sent
+                # Create in-app notification
+                create_notification(
+                    db=db,
+                    user_id=user.id,
+                    title="Message de l'administration",
+                    message=payload.message,
+                    notif_type="message"
+                )
+                sent += 1
+        except Exception as e:
+            failed += 1
+
     return {
         "sent": sent,
         "failed": failed,
-        "simulated": not SMS_ENABLED,
-        "details": results
+        "simulated": not EMAILS_ENABLED
     }
 

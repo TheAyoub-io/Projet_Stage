@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import api from '../lib/axios';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FileText, CheckCircle, XCircle, Clock, User, DoorOpen, ArrowRight, AlertCircle, Edit3, Download, MessageCircle, Phone, MapPin, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import html2pdf from 'html2pdf.js';
@@ -9,53 +8,30 @@ import { useTranslation } from 'react-i18next';
 import Skeleton, { SkeletonCard } from '../components/ui/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useMyStatus, useUpdateProfile } from '../hooks/useApplications';
+import { useCreateCheckoutSession } from '../hooks/usePayment';
+
 const Dashboard = () => {
   const { t } = useTranslation();
-  const [statusData, setStatusData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const { data: statusData, isLoading: loading, error } = useMyStatus();
+  const { mutate: updateProfile, isPending: profileSaving } = useUpdateProfile();
+  const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession();
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ phone: '', address: '', city: '' });
-  const [profileSaving, setProfileSaving] = useState(false);
-
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const fetchStatus = React.useCallback(async () => {
-    try {
-      const response = await api.get('/applications/my-status');
-      setStatusData(response.data);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        setError('Échec du chargement des données du tableau de bord.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
-
-
-  const handleProfileUpdate = async (e) => {
+  const handleProfileUpdate = (e) => {
     e.preventDefault();
-    setProfileSaving(true);
-    try {
-      await api.put('/applications/profile', profileForm);
-      setEditingProfile(false);
-      toast.success(t("profile_updated") || "Profil mis à jour avec succès !");
-      fetchStatus();
-    } catch {
-      toast.error(t("profile_update_failed") || "Échec de la mise à jour du profil.");
-    } finally {
-      setProfileSaving(false);
-    }
+    updateProfile(profileForm, {
+      onSuccess: () => {
+        setEditingProfile(false);
+        toast.success(t("profile_updated") || "Profil mis à jour avec succès !");
+      },
+      onError: () => {
+        toast.error(t("profile_update_failed") || "Échec de la mise à jour du profil.");
+      }
+    });
   };
 
   const handleDownloadPDF = () => {
@@ -67,7 +43,7 @@ const Dashboard = () => {
     }
     const opt = {
       margin: 10,
-      filename: `Attestation_Admission_${profile?.full_name?.replace(/\s+/g, '_') || 'Etudiant'}.pdf`,
+      filename: `Attestation_Admission_${profile?.full_name?.replace(/\\s+/g, '_') || 'Etudiant'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2.5, useCORS: true, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -77,7 +53,7 @@ const Dashboard = () => {
       .catch(() => { toast.error(t("error_pdf_generation") || "Erreur de génération PDF", { id: loadingToast }); });
   };
 
-  if (error) return <div className="container mx-auto px-4 py-12 text-center"><div className="alert alert-danger max-w-md mx-auto">{error}</div></div>;
+  if (error) return <div className="container mx-auto px-4 py-12 text-center"><div className="alert alert-danger max-w-md mx-auto">Échec du chargement des données du tableau de bord.</div></div>;
 
   const { application, profile, message } = statusData || {};
 
@@ -321,8 +297,8 @@ const Dashboard = () => {
                       <button
                         onClick={async () => {
                           try {
-                            const res = await api.post('/payments/create-checkout-session');
-                            window.location.href = res.data.checkout_url;
+                            const res = await createCheckoutSession();
+                            window.location.href = res.checkout_url;
                           } catch { toast.error("Échec de l'initialisation du paiement"); }
                         }}
                         className="btn bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 w-full py-4 text-base font-black shadow-xl transition-transform hover:scale-105"

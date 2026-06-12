@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import FormError from '../components/FormError';
 import { motion } from 'framer-motion';
+import { useRegister } from '../hooks/useAuth';
 
 const Register = () => {
   const { t } = useTranslation();
@@ -15,30 +16,50 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { mutate: register, isPending: loading } = useRegister();
 
-  const handleRegister = async (e) => {
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        if (base64Url) {
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(
+            atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+          );
+          const payload = JSON.parse(jsonPayload);
+          if (payload && (!payload.exp || payload.exp * 1000 > Date.now())) {
+            if (payload.role === 'admin') navigate('/admin', { replace: true });
+            else navigate('/dashboard', { replace: true });
+          }
+        }
+      } catch (e) {
+        // invalid token, ignore
+      }
+    }
+  }, [navigate]);
+
+  const handleRegister = (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
     if (password !== confirmPassword) {
       setError(t("passwords_dont_match") || "Les mots de passe ne correspondent pas.");
-      setLoading(false);
       return;
     }
 
-    try {
-      await api.post('/auth/register', { email, password });
-      toast.success(t("success_register") || "Compte créé avec succès !");
-      navigate('/login', { state: { message: t("success_register_login") || 'Inscription réussie ! Veuillez vous connecter.' } });
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || t("error_register") || 'Échec de l\'inscription.';
-      setError(errMsg);
-    } finally {
-      setLoading(false);
-    }
+    register({ email, password }, {
+      onSuccess: () => {
+        toast.success(t("success_register") || "Compte créé avec succès !");
+        navigate('/login', { state: { message: t("success_register_login") || 'Inscription réussie ! Veuillez vous connecter.' } });
+      },
+      onError: (err) => {
+        const errMsg = err.response?.data?.detail || t("error_register") || 'Échec de l\'inscription.';
+        setError(errMsg);
+      }
+    });
   };
 
   return (

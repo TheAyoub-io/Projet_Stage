@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../lib/axios';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import { useResetPassword } from '../hooks/useAuth';
 
 const ResetPassword = () => {
   const { t } = useTranslation();
@@ -15,6 +16,7 @@ const ResetPassword = () => {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { mutate: resetPassword, isPending: resetting } = useResetPassword();
 
   const handleVerifyCode = async (e) => {
     e.preventDefault();
@@ -39,32 +41,26 @@ const ResetPassword = () => {
     }
   };
 
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       setStatus({ type: 'danger', message: t('passwords_dont_match') });
       return;
     }
 
-    setLoading(true);
     setStatus({ type: '', message: '' });
 
-    try {
-      const response = await api.post('/auth/reset-password', {
-        token: code.trim(),
-        new_password: newPassword
-      });
-      setStatus({ type: 'success', message: response.data.message || t('reset_password_success') });
-
-      // Redirect to login after a short delay
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    } catch (err) {
-      setStatus({ type: 'danger', message: err.response?.data?.detail || t('reset_password_error') });
-    } finally {
-      setLoading(false);
-    }
+    resetPassword({ token: code.trim(), newPassword }, {
+      onSuccess: (response) => {
+        setStatus({ type: 'success', message: response.message || t('reset_password_success') });
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      },
+      onError: (err) => {
+        setStatus({ type: 'danger', message: err.response?.data?.detail || t('reset_password_error') });
+      }
+    });
   };
 
   return (
@@ -162,11 +158,11 @@ const ResetPassword = () => {
 
             <button
               type="submit"
-              disabled={loading || !newPassword || !confirmPassword}
+              disabled={resetting || !newPassword || !confirmPassword}
               className="btn btn-primary"
               style={{ width: '100%', marginBottom: '1.5rem', marginTop: '1rem', padding: '0.9rem' }}
             >
-              {loading ? t('resetting') : t('reset_password_btn')}
+              {resetting ? t('resetting') : t('reset_password_btn')}
             </button>
           </form>
         )}

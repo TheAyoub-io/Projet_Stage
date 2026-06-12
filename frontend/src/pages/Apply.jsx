@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { PROVINCES_DATA, CITIES_BY_PROVINCE_DATA, getLabel } from '../data/citiesData';
 import FormError from '../components/FormError';
+import { useSubmitApplication, useMyStatus } from '../hooks/useApplications';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx');
 
@@ -22,10 +23,11 @@ const Apply = () => {
   const editMode = new URLSearchParams(location.search).get('edit') === 'true';
 
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(editMode);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  const { data: statusData, isLoading: dataLoading } = useMyStatus();
+  const { mutate: submitApplication, isPending: loading } = useSubmitApplication();
 
   const [fullName, setFullName] = useState('');
   const [cin, setCin] = useState('');
@@ -47,42 +49,29 @@ const Apply = () => {
 
   const [paymentMethod, setPaymentMethod] = useState('upload');
 
-  const submitApplication = useCallback(async (formData) => {
-    try {
-      if (editMode) await api.put('/applications/update', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      else await api.post('/applications/apply', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setSuccess(true); toast.success(t("application_saved"));
-      setTimeout(() => navigate('/dashboard'), 2000);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Erreur lors de la soumission.');
-    } finally { setLoading(false); }
-  }, [editMode, navigate, t]);
-
   useEffect(() => {
-    if (editMode) {
-      api.get('/applications/my-status').then(res => {
-        const { profile, application } = res.data;
-        if (profile) {
-          setFullName(profile.full_name || '');
-          setCin(profile.cin || '');
-          setPhone(profile.phone || '');
-          setDateOfBirth(profile.date_of_birth ? profile.date_of_birth.split('T')[0] : '');
-          setAddress(profile.address || '');
-          setProvince(profile.province || '');
-          setCity(profile.city || '');
+    if (editMode && statusData) {
+      const { profile, application } = statusData;
+      if (profile) {
+        setFullName(profile.full_name || '');
+        setCin(profile.cin || '');
+        setPhone(profile.phone || '');
+        setDateOfBirth(profile.date_of_birth ? profile.date_of_birth.split('T')[0] : '');
+        setAddress(profile.address || '');
+        setProvince(profile.province || '');
+        setCity(profile.city || '');
+      }
+      if (application) {
+        setStudentType(application.student_type || '');
+        setGradeAverage(application.grade_average || '');
+        const appFiliere = application.filière || application.filiere;
+        if (appFiliere && appFiliere.includes(' - ')) {
+          const [niv, fil] = appFiliere.split(' - ');
+          setNiveau(niv); setFiliere(fil);
         }
-        if (application) {
-          setStudentType(application.student_type || '');
-          setGradeAverage(application.grade_average || '');
-          const appFiliere = application.filière || application.filiere;
-          if (appFiliere && appFiliere.includes(' - ')) {
-            const [niv, fil] = appFiliere.split(' - ');
-            setNiveau(niv); setFiliere(fil);
-          }
-        }
-      }).catch(() => setError("Impossible de charger vos données.")).finally(() => setDataLoading(false));
+      }
     }
-  }, [editMode]);
+  }, [editMode, statusData]);
 
   const steps = [
     { num: 1, label: t('profile'), icon: User },
@@ -118,7 +107,7 @@ const Apply = () => {
       if (paymentMethod === 'upload' && !feeReceiptFile) { setError(t("error_receipt_required") || "Reçu requis"); return; }
     }
 
-    setLoading(true); setError('');
+    setError('');
     const formData = new FormData();
     formData.append('full_name', fullName); formData.append('cin', cin);
     formData.append('phone', phone); formData.append('date_of_birth', dateOfBirth);
@@ -130,7 +119,16 @@ const Apply = () => {
     if (paymentMethod === 'upload' && feeReceiptFile) formData.append('fee_receipt', feeReceiptFile);
     if (residencyCertFile) formData.append('residency_cert', residencyCertFile);
 
-    await submitApplication(formData);
+    submitApplication({ data: formData, editMode }, {
+      onSuccess: () => {
+        setSuccess(true);
+        toast.success(t("application_saved"));
+        setTimeout(() => navigate('/dashboard'), 2000);
+      },
+      onError: (err) => {
+        setError(err.response?.data?.detail || 'Erreur lors de la soumission.');
+      }
+    });
   };
 
   if (dataLoading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;

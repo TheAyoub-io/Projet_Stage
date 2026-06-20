@@ -9,6 +9,7 @@ const NotificationBell = () => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('all'); // 'all' or 'unread'
     const dropdownRef = useRef(null);
 
@@ -47,6 +48,7 @@ const NotificationBell = () => {
                 setUnreadCount(prev => Math.max(0, prev - 1));
             }
 
+            // Dispatch event for actionable notifications
             if (notification.type === 'message' && notification.related_id) {
                 window.dispatchEvent(new CustomEvent('notification-click', {
                     detail: { type: 'message', id: notification.related_id }
@@ -93,26 +95,55 @@ const NotificationBell = () => {
 
     const getIcon = (type) => {
         switch (type) {
-            case 'message': return <MessageSquare size={16} className="text-indigo-600" />;
-            case 'status_change': return <AlertCircle size={16} className="text-blue-600" />;
-            default: return <Bell size={16} className="text-slate-400" />;
+            case 'message': return <MessageSquare size={16} className="text-secondary" />;
+            case 'status_change': return <AlertCircle size={16} className="text-primary" />;
+            default: return <Bell size={16} className="text-muted" />;
         }
     };
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`p-2 rounded-full transition-all relative ${isOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-100'}`}
-                aria-label="Notifications"
+                className="btn-text"
+                style={{
+                    padding: '0.6rem',
+                    borderRadius: '50%',
+                    position: 'relative',
+                    background: isOpen ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                    color: isOpen ? 'var(--primary)' : 'var(--text-main)',
+                    transition: 'all 0.2s'
+                }}
             >
                 <Bell size={22} />
                 {unreadCount > 0 && (
                     <motion.span
                         initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: [1, 1.2, 1], opacity: 1 }}
-                        transition={{ scale: { repeat: Infinity, duration: 2 }, duration: 0.3 }}
-                        className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm"
+                        animate={{
+                            scale: [1, 1.2, 1],
+                            opacity: 1
+                        }}
+                        transition={{
+                            scale: { repeat: Infinity, duration: 2 },
+                            duration: 0.3
+                        }}
+                        style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            background: 'var(--danger)',
+                            color: 'white',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '2px solid var(--bg-color)',
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
+                        }}
                     >
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </motion.span>
@@ -126,77 +157,119 @@ const NotificationBell = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full right-0 mt-3 w-80 glass-panel overflow-hidden z-[1000] border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-200/50"
+                        style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: '0',
+                            marginTop: '0.75rem',
+                            width: '320px',
+                            background: 'var(--card-bg)',
+                            backdropFilter: 'blur(20px)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '16px',
+                            boxShadow: 'var(--glass-shadow)',
+                            zIndex: 1000,
+                            overflow: 'hidden'
+                        }}
                     >
-                        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-                            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+                        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.05)', padding: '3px', borderRadius: '10px' }}>
                                 <button
                                     onClick={() => setActiveTab('all')}
-                                    className={`px-3 py-1 text-[10px] uppercase font-black rounded-md transition-all ${activeTab === 'all' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                                    style={{
+                                        padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '7px', border: 'none',
+                                        background: activeTab === 'all' ? '#fff' : 'transparent',
+                                        color: activeTab === 'all' ? 'var(--primary)' : 'var(--text-muted)',
+                                        fontWeight: '700', cursor: 'pointer', transition: '0.2s'
+                                    }}
                                 >
                                     Toutes
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('unread')}
-                                    className={`px-3 py-1 text-[10px] uppercase font-black rounded-md transition-all ${activeTab === 'unread' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                                    style={{
+                                        padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '7px', border: 'none',
+                                        background: activeTab === 'unread' ? '#fff' : 'transparent',
+                                        color: activeTab === 'unread' ? 'var(--primary)' : 'var(--text-muted)',
+                                        fontWeight: '700', cursor: 'pointer', transition: '0.2s'
+                                    }}
                                 >
-                                    Non lues
+                                    Filtre ({unreadCount})
                                 </button>
                             </div>
-                            <div className="flex gap-1">
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 {unreadCount > 0 && (
-                                    <button onClick={markAllRead} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Tout marquer lu">
+                                    <button onClick={markAllRead} title="Tout marquer lu" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--primary)', padding: '5px', borderRadius: '6px' }}>
                                         <Check size={16} />
                                     </button>
                                 )}
-                                <button onClick={clearAll} className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Tout effacer">
+                                <button onClick={clearAll} title="Tout effacer" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--danger)', padding: '5px', borderRadius: '6px' }}>
                                     <Trash2 size={16} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
+                        <div style={{ maxHeight: '380px', overflowY: 'auto', scrollbarWidth: 'thin' }}>
                             {(() => {
                                 const list = activeTab === 'unread' ? notifications.filter(n => !n.is_read) : notifications;
                                 if (list.length === 0) {
                                     return (
-                                        <div className="py-12 px-6 text-center">
-                                            <Bell size={40} className="mx-auto text-slate-200 mb-3" />
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                {activeTab === 'unread' ? "Aucune nouvelle alerte" : "Vide"}
+                                        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                            <Bell size={40} style={{ opacity: 0.1, marginBottom: '0.5rem' }} />
+                                            <p style={{ fontSize: '0.85rem', margin: 0 }}>
+                                                {activeTab === 'unread' ? "Aucune notification non lue" : "Vos notifications s'afficheront ici"}
                                             </p>
                                         </div>
                                     );
                                 }
                                 return list.map(notif => (
-                                    <div
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                         key={notif.id}
                                         onClick={() => markAsRead(notif)}
-                                        className={`p-4 flex gap-4 transition-colors cursor-pointer relative group ${notif.is_read ? 'bg-white dark:bg-slate-900' : 'bg-blue-50/30 dark:bg-blue-900/10 hover:bg-blue-50/50'}`}
+                                        style={{
+                                            padding: '1rem',
+                                            borderBottom: '1px solid var(--card-border)',
+                                            background: notif.is_read ? 'transparent' : 'rgba(79, 70, 229, 0.04)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            gap: '0.85rem',
+                                            position: 'relative'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(79, 70, 229, 0.08)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = notif.is_read ? 'transparent' : 'rgba(79, 70, 229, 0.04)'}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${notif.is_read ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                                        <div style={{
+                                            width: '38px', height: '38px', borderRadius: '10px',
+                                            background: notif.is_read ? 'var(--bg-alt)' : 'rgba(79, 70, 229, 0.1)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                        }}>
                                             {getIcon(notif.type)}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-start mb-1">
-                                                <h5 className={`text-sm leading-tight truncate ${notif.is_read ? 'font-semibold text-slate-700 dark:text-slate-300' : 'font-bold text-slate-900 dark:text-white'}`}>{notif.title}</h5>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.15rem' }}>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: notif.is_read ? '600' : '800', color: 'var(--text-main)' }}>{notif.title}</span>
                                                 <button
                                                     onClick={(e) => deleteOne(e, notif.id)}
-                                                    className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px', opacity: 0.3 }}
+                                                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                                                    onMouseLeave={e => e.currentTarget.style.opacity = 0.3}
                                                 >
-                                                    <Trash2 size={12} />
+                                                    <Trash2 size={14} />
                                                 </button>
                                             </div>
-                                            <p className="text-xs text-slate-500 line-clamp-2 mb-2 leading-relaxed">{notif.message}</p>
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.5rem 0', lineHeight: '1.4' }}>{notif.message}</p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '500' }}>
                                                 <Clock size={10} />
                                                 <span>{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: fr })}</span>
                                             </div>
                                         </div>
                                         {!notif.is_read && (
-                                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-600"></div>
+                                            <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 0 3px rgba(79, 70, 229, 0.1)' }}></div>
                                         )}
-                                    </div>
+                                    </motion.div>
                                 ));
                             })()}
                         </div>

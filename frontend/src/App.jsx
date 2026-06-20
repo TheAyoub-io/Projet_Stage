@@ -42,16 +42,8 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   const payload = parseJwt(token);
-  if (!payload) {
-    localStorage.removeItem('token');
-    return <Navigate to="/login" replace />;
-  }
-  if (payload.role !== 'admin') {
+  if (payload?.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
-  }
-  if (payload.exp && payload.exp * 1000 < Date.now()) {
-    localStorage.removeItem('token');
-    return <Navigate to="/login" replace state={{ message: 'Session expirée. Veuillez vous reconnecter.' }} />;
   }
   return children;
 };

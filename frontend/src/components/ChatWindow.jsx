@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, X, MessageCircle } from 'lucide-react';
 import axios from 'axios';
-import { API_BASE_URL, WS_BASE_URL } from '../lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ChatWindow = ({ applicationId, isOpen, onClose }) => {
@@ -23,12 +22,12 @@ const ChatWindow = ({ applicationId, isOpen, onClose }) => {
         if (!isOpen || !applicationId) return;
 
         // Load History
-        axios.get(`${API_BASE_URL}/chat/${applicationId}`, {
+        axios.get(`http://localhost:8000/chat/${applicationId}`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(res => setMessages(res.data));
 
         // Connect WebSocket
-        const ws = new WebSocket(`${WS_BASE_URL}/chat/ws/${applicationId}?token=${token}`);
+        const ws = new WebSocket(`ws://localhost:8000/chat/ws/${applicationId}?token=${token}`);
 
         ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
@@ -74,12 +73,7 @@ const ChatWindow = ({ applicationId, isOpen, onClose }) => {
 
                 <div className="dash-body" style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem' }}>
                     {messages.map((msg, index) => {
-                        const isMe = (() => {
-                            try {
-                                if (!token) return false;
-                                return msg.sender_id === JSON.parse(atob(token.split('.')[1])).id;
-                            } catch { return false; }
-                        })();
+                        const isMe = msg.sender_id === JSON.parse(atob(token.split('.')[1])).id;
                         return (
                             <div
                                 key={index}

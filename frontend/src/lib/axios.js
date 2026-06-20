@@ -1,7 +1,11 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
+
+export const API_BASE_URL = Capacitor.isNativePlatform() ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+export const WS_BASE_URL = Capacitor.isNativePlatform() ? 'ws://10.0.2.2:8000' : 'ws://localhost:8000';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,16 +26,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const requestUrl = error.config?.url || '';
+    const isAuthRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       const token = localStorage.getItem('token');
       if (token) {
         localStorage.removeItem('token');
         const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/'];
         const path = window.location.pathname;
         if (!publicPaths.includes(path)) {
-          window.location.href = '/login';
-        } else {
-          window.location.reload();
+          window.location.href = '/login?session=expired';
         }
       }
     }

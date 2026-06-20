@@ -7,16 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        academic: {
-          blue: '#1E3A8A', // Deep professional blue
-          lightBlue: '#3B82F6',
-          gray: '#F3F4F6', // Light background gray
-          darkGray: '#374151', // Text gray
-          white: '#FFFFFF',
+        primary: {
+          DEFAULT: '#1e3a8a',
+          hover: '#1e40af',
+          light: '#3b82f6',
+        },
+        secondary: {
+          DEFAULT: '#4f46e5',
+        },
+        accent: {
+          DEFAULT: '#0ea5e9',
+        },
+        danger: {
+          DEFAULT: '#ef4444',
+        },
+        success: {
+          DEFAULT: '#10b981',
+        },
+        warning: {
+          DEFAULT: '#f59e0b',
         }
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
+      },
+      borderRadius: {
+        'xl': '1rem',
+        'lg': '0.75rem',
+        'md': '0.5rem',
+        'sm': '0.375rem',
       }
     },
   },

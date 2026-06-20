@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Apply from './pages/Apply';
 import AdminDashboard from './pages/AdminDashboard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -41,10 +42,67 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   const payload = parseJwt(token);
-  if (payload?.role !== 'admin') {
+  if (!payload) {
+    localStorage.removeItem('token');
+    return <Navigate to="/login" replace />;
+  }
+  if (payload.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
+  if (payload.exp && payload.exp * 1000 < Date.now()) {
+    localStorage.removeItem('token');
+    return <Navigate to="/login" replace state={{ message: 'Session expirée. Veuillez vous reconnecter.' }} />;
+  }
   return children;
+};
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className="flex-grow flex flex-col"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/apply"
+            element={
+              <ProtectedRoute>
+                <Apply />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
 };
 
 function App() {
@@ -56,7 +114,6 @@ function App() {
       document.documentElement.lang = lng;
     };
 
-    // Set initial dir
     if (i18n && i18n.language) {
       handleLangChange(i18n.language);
       i18n.on('languageChanged', handleLangChange);
@@ -82,55 +139,12 @@ function App() {
             fontSize: '0.95rem',
             fontFamily: 'Inter, system-ui, sans-serif',
           },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#ffffff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#ffffff',
-            },
-          },
         }}
       />
       <div className="app-container">
         <Navbar />
         <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/apply"
-              element={
-                <ProtectedRoute>
-                  <Apply />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AnimatedRoutes />
         </main>
         <Footer />
       </div>

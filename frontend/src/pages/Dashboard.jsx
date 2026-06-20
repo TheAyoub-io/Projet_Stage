@@ -1,485 +1,481 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import api from '../lib/axios';
-import { FileText, CheckCircle, XCircle, Clock, User, Home, DoorOpen, ArrowRight, AlertCircle, Edit3, Save, Download, Loader2, MessageCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FileText, CheckCircle, XCircle, Clock, User, DoorOpen, ArrowRight, AlertCircle, Edit3, Download, MessageCircle, Phone, MapPin, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import html2pdf from 'html2pdf.js';
 import ChatWindow from '../components/ChatWindow';
 import { useTranslation } from 'react-i18next';
+import Skeleton, { SkeletonCard } from '../components/ui/Skeleton';
+import { motion, AnimatePresence } from 'framer-motion';
+
+import { useMyStatus, useUpdateProfile } from '../hooks/useApplications';
+import { useCreateCheckoutSession } from '../hooks/usePayment';
 
 const Dashboard = () => {
   const { t } = useTranslation();
-  const [statusData, setStatusData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-
-  const [loadingRoom, setLoadingRoom] = useState(false);
-  const [roomError, setRoomError] = useState('');
-  const [roomSuccess, setRoomSuccess] = useState('');
+  const { data: statusData, isLoading: loading, error } = useMyStatus();
+  const { mutate: updateProfile, isPending: profileSaving } = useUpdateProfile();
+  const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession();
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ phone: '', address: '', city: '' });
-  const [profileSaving, setProfileSaving] = useState(false);
-
-  // États du Chat Support
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const fetchStatus = async () => {
-    try {
-      const response = await api.get('/applications/my-status');
-      setStatusData(response.data);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        setError('Échec du chargement des données du tableau de bord.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStatus();
-    const img1 = new Image(); img1.src = '/logo_lycee.jpg';
-    const img2 = new Image(); img2.src = '/logo_maroc.png';
-  }, [navigate]);
-
-  const fetchMessages = async () => {
-    if (!statusData?.application?.id) return;
-    try {
-      const res = await api.get(`/applications/${statusData.application.id}/messages`);
-      setMessages(res.data);
-    } catch (err) {
-      console.error("Échec du chargement des messages", err);
-    }
-  };
-
-  useEffect(() => {
-    if (statusData?.application?.id) {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [statusData?.application?.id]);
-
-  useEffect(() => {
-    const handleNotifClick = (e) => {
-      if (e.detail.type === 'message') {
-        const chatContainer = document.getElementById('chat-messages-container');
-        if (chatContainer) {
-          chatContainer.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    };
-    window.addEventListener('notification-click', handleNotifClick);
-    return () => window.removeEventListener('notification-click', handleNotifClick);
-  }, []);
-
-  const handleSendMessage = async (e) => {
+  const handleProfileUpdate = (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !statusData?.application?.id) return;
-    setChatLoading(true);
-    try {
-      const res = await api.post(`/applications/${statusData.application.id}/messages`, { message: newMessage });
-      setMessages(prev => [...prev, res.data]);
-      setNewMessage('');
-      const chatContainer = document.getElementById('chat-messages-container');
-      if (chatContainer) {
-        setTimeout(() => { chatContainer.scrollTop = chatContainer.scrollHeight; }, 100);
+    updateProfile(profileForm, {
+      onSuccess: () => {
+        setEditingProfile(false);
+        toast.success(t("profile_updated") || "Profil mis à jour avec succès !");
+      },
+      onError: () => {
+        toast.error(t("profile_update_failed") || "Échec de la mise à jour du profil.");
       }
-    } catch (err) {
-      toast.error("Échec de l'envoi du message.");
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const handleAutoAssign = async (e) => {
-    e.preventDefault();
-    setLoadingRoom(true);
-    setRoomError('');
-    try {
-      await api.post(`/rooms/auto-assign`);
-      toast.success("Chambre attribuée avec succès !");
-      fetchStatus();
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || "Échec de l'attribution de la chambre.";
-      setRoomError(errMsg);
-      toast.error(errMsg);
-    } finally {
-      setLoadingRoom(false);
-    }
-  };
-
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    setProfileSaving(true);
-    try {
-      await api.put('/applications/profile', profileForm);
-      setEditingProfile(false);
-      toast.success("Profil mis à jour avec succès !");
-      fetchStatus();
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || "Échec de la mise à jour du profil.";
-      toast.error(errMsg);
-    } finally {
-      setProfileSaving(false);
-    }
+    });
   };
 
   const handleDownloadPDF = () => {
-    const loadingToast = toast.loading("Génération de votre attestation...");
+    const loadingToast = toast.loading(t("generating_attestation") || "Génération de votre attestation...");
     const element = document.getElementById('attestation-pdf-template');
     if (!element) {
-      toast.error("Erreur de modèle d'attestation", { id: loadingToast });
+      toast.error(t("error_attestation_template") || "Erreur de modèle d'attestation", { id: loadingToast });
       return;
     }
     const opt = {
       margin: 10,
-      filename: `Attestation_Admission_${profile?.full_name?.replace(/\s+/g, '_') || 'Etudiant'}.pdf`,
+      filename: `Attestation_Admission_${profile?.full_name?.replace(/\\s+/g, '_') || 'Etudiant'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2.5, useCORS: true, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save()
-      .then(() => toast.success("Attestation téléchargée avec succès !", { id: loadingToast }))
-      .catch((err) => { console.error(err); toast.error("Erreur de génération PDF", { id: loadingToast }); });
+      .then(() => toast.success(t("attestation_downloaded") || "Attestation téléchargée avec succès !", { id: loadingToast }))
+      .catch(() => { toast.error(t("error_pdf_generation") || "Erreur de génération PDF", { id: loadingToast }); });
   };
 
-  if (loading) return <div className="loader-container"><div className="spinner"></div></div>;
-  if (error) return <div className="container dashboard-page"><div className="alert alert-danger" style={{ maxWidth: '600px', margin: '0 auto' }}>{error}</div></div>;
+  if (error) return <div className="container mx-auto px-4 py-12 text-center"><div className="alert alert-danger max-w-md mx-auto">Échec du chargement des données du tableau de bord.</div></div>;
 
   const { application, profile, message } = statusData || {};
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'approved': return <span className="badge badge-approved"><CheckCircle size={14} /> {t("approved")}</span>;
-      case 'rejected': return <span className="badge badge-rejected"><XCircle size={14} /> {t("rejected")}</span>;
-      case 'incomplete': return <span className="badge badge-incomplete"><AlertCircle size={14} /> {t("incomplete")}</span>;
-      case 'waitlisted': return <span className="badge badge-waitlisted"><Clock size={14} /> {t("waitlisted")}</span>;
-      case 'pending': default: return <span className="badge badge-pending"><Clock size={14} /> {t("pending")}</span>;
+      case 'approved': return <span className="badge bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1.5"><CheckCircle size={14} className="mr-1" /> {t("approved")}</span>;
+      case 'rejected': return <span className="badge bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-3 py-1.5"><XCircle size={14} className="mr-1" /> {t("rejected")}</span>;
+      case 'incomplete': return <span className="badge bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20 px-3 py-1.5"><AlertCircle size={14} className="mr-1" /> {t("incomplete")}</span>;
+      case 'waitlisted': return <span className="badge bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1.5"><Clock size={14} className="mr-1" /> {t("waitlisted")}</span>;
+      case 'pending': default: return <span className="badge bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-3 py-1.5"><Clock size={14} className="mr-1" /> {t("pending")}</span>;
     }
   };
 
   const steps = application ? [
-    { id: 1, label: 'Soumission', desc: 'Dossier déposé avec succès', active: true, completed: true },
-    { id: 2, label: 'Examen académique', desc: application.status === 'incomplete' ? 'Correction requise' : 'Analyse du dossier', active: application.status === 'pending' || application.status === 'incomplete', completed: ['approved', 'rejected', 'waitlisted'].includes(application.status) },
-    { id: 3, label: 'Décision finale', desc: application.status === 'approved' ? 'Approuvé !' : application.status === 'rejected' ? 'Rejeté' : application.status === 'waitlisted' ? 'Liste d\'attente' : 'En attente', active: ['approved', 'rejected', 'waitlisted'].includes(application.status) && !application.room, completed: ['approved', 'rejected'].includes(application.status) },
-    { id: 4, label: 'Chambre', desc: application.room ? `Affecté (Ch. ${application.room.room_number})` : 'En attente d\'affectation', active: application.status === 'approved' && !application.room, completed: !!application.room },
-    { id: 5, label: 'Admission validée', desc: application.room ? 'Processus finalisé !' : 'Rentrée d\'internat', active: !!application.room, completed: !!application.room }
+    { id: 1, label: 'Soumission', completed: true },
+    { id: 2, label: 'Examen', completed: ['approved', 'rejected', 'waitlisted'].includes(application.status), active: application.status === 'pending' || application.status === 'incomplete' },
+    { id: 3, label: 'Décision', completed: ['approved', 'rejected'].includes(application.status), active: ['approved', 'rejected', 'waitlisted'].includes(application.status) },
+    { id: 4, label: 'Chambre', completed: !!application.room, active: application.status === 'approved' && !application.room },
+    { id: 5, label: 'Finalisé', completed: !!application.room, active: !!application.room }
   ] : [];
 
   return (
-    <div className="container dashboard-page animate-up">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
-        <motion.div initial={{ rotate: -10, scale: 0.9 }} animate={{ rotate: 0, scale: 1 }} style={{ padding: '1.1rem', background: 'var(--gradient-main)', borderRadius: '18px', color: 'white', boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)' }}>
-          <Home size={32} />
-        </motion.div>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '2.2rem', fontWeight: '900' }}>{t("dashboard_title")}</h1>
-          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '1.05rem' }}>{t("welcome")}, {profile?.full_name || ''}</p>
+    <div className="container mx-auto px-4 sm:px-6 pt-32 pb-8 md:pb-12 max-w-7xl">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6"
+      >
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl text-white shadow-xl shadow-blue-500/20 ring-4 ring-blue-50 dark:ring-slate-800">
+            <GraduationCap size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{t("dashboard_title")}</h1>
+            <p className="text-slate-500 dark:text-slate-400 font-medium text-lg mt-1">{t("welcome")}, <span className="text-slate-900 dark:text-white font-bold">{loading ? <Skeleton className="h-5 w-32 inline-block ml-1" /> : (profile?.full_name || 'Étudiant')}</span></p>
+          </div>
         </div>
-      </div>
 
-      {application && (
-        <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderTop: '4px solid var(--primary)', borderRadius: '16px' }}>
-          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
-            <Clock size={20} style={{ color: 'var(--primary)' }} /> Suivi en temps réel de votre admission
-          </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem', position: 'relative' }}>
-            {steps.map((step, idx) => (
-              <div key={step.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '1 1 150px', textAlign: 'center', minWidth: '120px', position: 'relative', zIndex: 1 }}>
-                {idx < steps.length - 1 && <div style={{ position: 'absolute', top: '20px', left: '50%', width: '100%', height: '2px', background: step.completed ? '#10b981' : 'var(--card-border)', zIndex: -1 }} />}
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: step.completed ? '#d1fae5' : step.active && !step.completed ? 'rgba(79, 70, 229, 0.1)' : 'var(--bg-alt)', border: `2px solid ${step.completed ? '#10b981' : step.active && !step.completed ? 'var(--primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: step.completed ? '#10b981' : step.active && !step.completed ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.95rem', marginBottom: '0.75rem', boxShadow: step.active && !step.completed ? '0 0 0 4px rgba(79, 70, 229, 0.15)' : 'none' }}>
-                  {step.completed ? '✓' : step.id}
+        {!loading && !application && (
+          <Link to="/apply" className="btn btn-primary px-8 group">
+            {t("apply_now")}
+            <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        )}
+      </motion.div>
+
+      {loading ? (
+        <div className="space-y-6 md:space-y-8">
+          <div className="bento-card"><Skeleton className="h-24 w-full" /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 bg">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="bento-card"><Skeleton className="h-64 w-full" /></div>
+            </div>
+            <div className="space-y-8">
+              <SkeletonCard />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+
+          {/* Top Span Tracker */}
+          {application && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="lg:col-span-12 bento-card mb-2 overflow-hidden relative"
+            >
+              <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+              <h3 className="text-xl font-extrabold mb-8 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600">
+                  <Clock size={24} />
                 </div>
-                <div style={{ fontWeight: '600', fontSize: '0.9rem', color: step.completed || (step.active && !step.completed) ? 'var(--text-main)' : 'var(--text-muted)', marginBottom: '0.2rem' }}>{step.label}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '140px', margin: '0 auto' }}>{step.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                {t("tracking_title")}
+              </h3>
 
-      <div className="dashboard-grid">
-        <div className="glass-panel dash-card" style={{ borderTop: '4px solid var(--primary)', overflow: 'hidden' }}>
-          <div className="dash-header" style={{ background: 'rgba(99, 102, 241, 0.03)', borderBottom: '1px solid var(--card-border)' }}>
-            <FileText size={22} style={{ color: 'var(--primary)' }} /> <h3 style={{ fontWeight: '800' }}>{t("admission_status")}</h3>
-          </div>
-          <div className="dash-body">
-            {!application ? (
-              <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-                <div style={{ width: '80px', height: '80px', background: 'var(--bg-alt)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--primary)' }}><FileText size={40} /></div>
-                <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-muted)' }}>{message || "Aucune candidature soumise pour le moment."}</p>
-                <Link to="/apply" className="btn btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1.1rem' }}>Soumettre ma Candidature <ArrowRight size={18} /></Link>
-              </div>
-            ) : (
-              <div>
-                <div className="status-row" style={{ padding: '1rem', background: 'var(--bg-alt)', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <span className="status-label" style={{ fontWeight: '600', margin: 0 }}>Statut Actuel</span>
-                    {getStatusBadge(application.status)}
+              <div className="relative flex justify-between items-start max-w-5xl mx-auto px-4 md:px-12 py-4">
+                {/* Progress bar line */}
+                <div className="absolute top-[28px] left-[10%] right-[10%] h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full z-0 overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-1000 ease-out"
+                    style={{ width: `${(steps.findIndex(s => !s.completed && !s.active) === -1 ? steps.length : Math.max(0, steps.findIndex(s => !s.completed && !s.active) - 1)) / (steps.length - 1) * 100}%` }}
+                  />
+                </div>
+
+                {steps.map((step) => (
+                  <div key={step.id} className="flex flex-col items-center text-center relative z-10 w-20">
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold transition-all duration-500 border-[3px] ring-4 ring-white dark:ring-slate-900 ${step.completed
+                        ? 'bg-emerald-500 border-emerald-400 text-white shadow-xl shadow-emerald-500/30'
+                        : step.active
+                          ? 'bg-blue-600 border-blue-400 text-white shadow-xl shadow-blue-500/30'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                        }`}>
+                      {step.completed ? <CheckCircle size={24} /> : <span className="text-lg">{step.id}</span>}
+                    </motion.div>
+                    <span className={`mt-4 text-[13px] font-bold uppercase tracking-wider ${step.completed || step.active ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                      {step.label}
+                    </span>
                   </div>
-                  {application.status === 'approved' && (
-                    <button onClick={handleDownloadPDF} className="btn" style={{ padding: '0.5rem 1.2rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10b981', borderColor: '#10b981', color: '#fff', fontWeight: '600', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}><Download size={16} /> Télécharger mon Attestation</button>
-                  )}
-                  {(['pending', 'rejected', 'incomplete'].includes(application.status)) && (
-                    <Link to="/apply?edit=true" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FileText size={16} /> {application.status === 'rejected' ? 'Ré-appliquer' : application.status === 'incomplete' ? 'Corriger mon dossier' : 'Modifier ma candidature'}
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Left Column (Main Specs) */}
+          <div className="lg:col-span-8 flex flex-col gap-6 md:gap-8">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bento-card !p-0 overflow-hidden flex flex-col h-full"
+            >
+              <div className="px-8 py-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h3 className="font-extrabold text-xl flex items-center gap-3 text-slate-800 dark:text-slate-100">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600">
+                    <FileText size={24} />
+                  </div>
+                  {t("application_details")}
+                </h3>
+                {application && getStatusBadge(application.status)}
+              </div>
+
+              <div className="p-8 flex-1">
+                {!application ? (
+                  <div className="text-center py-16">
+                    <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-8 ring-blue-50 dark:ring-blue-900/10">
+                      <FileText size={48} strokeWidth={1.5} />
+                    </div>
+                    <p className="text-xl text-slate-500 mb-8 max-w-sm mx-auto">{message || t("no_application_submitted") || "Aucune candidature soumise pour le moment."}</p>
+                    <Link to="/apply" className="btn btn-primary px-10 py-4 font-extrabold text-lg shadow-xl shadow-blue-500/20 hover:scale-105">
+                      {t("submit_application") || "Soumettre ma Candidature"}
                     </Link>
-                  )}
-                </div>
-
-                {application.status === 'incomplete' && (
-                  <div className="alert alert-danger" style={{ display: 'block', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}><AlertCircle size={18} /> Action administrative requise</div>
-                    <p style={{ margin: 0, color: 'inherit' }}>Votre dossier a été marqué comme <strong>incomplet</strong>. Veuillez corriger l'élément signalé :</p>
-                    <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '0.75rem 1rem', borderRadius: '8px', borderLeft: '4px solid var(--danger)', marginTop: '0.75rem', fontWeight: '500' }}>&ldquo;{application.admin_feedback || "Veuillez vérifier vos documents."}&rdquo;</div>
-                  </div>
-                )}
-
-                <div className="status-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                  <div><span className="status-label">Type d'étudiant</span><span className="status-value">{application.student_type}</span></div>
-                  <div><span className="status-label">Moyenne</span><span className="status-value">{application.grade_average}/20</span></div>
-                  <div style={{ gridColumn: '1 / -1' }}><span className="status-label">Filière</span><span className="status-value">{application.filière || application.filiere}</span></div>
-                  <div style={{ gridColumn: '1 / -1' }}><span className="status-label">Soumis le</span><span className="status-value">{new Date(application.submitted_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
-                </div>
-
-                <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '2rem' }}>
-                  <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: '600' }}><Clock size={20} style={{ color: 'var(--primary)' }} /> Historique des étapes</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {application.history?.length > 0 ? (
-                      application.history.map((h, idx) => (
-                        <div key={h.id} style={{ display: 'flex', gap: '1.25rem', position: 'relative' }}>
-                          {idx < application.history.length - 1 && <div style={{ position: 'absolute', left: '8px', top: '20px', bottom: '-20px', width: '2px', background: 'linear-gradient(to bottom, var(--primary), transparent)', opacity: 0.2 }} />}
-                          <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: idx === 0 ? 'var(--primary)' : '#fff', border: `4px solid ${idx === 0 ? 'rgba(79, 70, 229, 0.2)' : 'var(--primary)'}`, flexShrink: 0, zIndex: 1, marginTop: '4px' }} />
-                          <div style={{ flex: 1, background: 'rgba(255, 255, 255, 0.4)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: '700', textTransform: 'capitalize', color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                                {h.status === 'approved' ? 'Approuvée' : h.status === 'rejected' ? 'Rejetée' : h.status === 'incomplete' ? 'Incomplet' : h.status === 'waitlisted' ? 'Liste d\'Attente' : 'Soumission'}
-                              </span>
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</span>
-                            </div>
-                            {h.comment && <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>&ldquo;{h.comment}&rdquo;</p>}
-                          </div>
-                        </div>
-                      ))
-                    ) : <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Aucun historique.</div>}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {application?.status === 'approved' && (
-            <div className="glass-panel dash-card delay-1" style={{ borderTop: '4px solid #10b981' }}>
-              <div className="dash-header"><DoorOpen size={24} style={{ color: '#10b981' }} /> <h3>{t("room_assignment")}</h3></div>
-              <div className="dash-body">
-                {application.room ? (
-                  <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-                    <div style={{ width: '70px', height: '70px', background: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: '#10b981' }}><CheckCircle size={36} /></div>
-                    <h2 style={{ margin: '0 0 0.5rem 0', color: '#065f46', fontSize: '2rem' }}>{application.room.room_number}</h2>
-                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>Vous avez été affecté(e) à cette chambre.</p>
                   </div>
                 ) : (
-                  <div>
-                    <div className="alert alert-success" style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>Félicitations ! Votre dossier est approuvé.</div>
-                    <div className="bg-gray-50 p-4 rounded-xl mb-4 border border-gray-100">
-                      <p className="text-sm font-bold text-gray-700 mb-2">Frais d'inscription requis</p>
-                      <p className="text-xs text-gray-500 mb-3">Veuillez régler vos frais d'admission (500 MAD) pour finaliser votre inscription et obtenir votre chambre.</p>
+                  <div className="space-y-8">
+                    {application.status === 'incomplete' && (
+                      <div className="p-6 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800/50 rounded-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-2 h-full bg-pink-500"></div>
+                        <div className="flex items-center gap-3 text-pink-700 dark:text-pink-400 font-extrabold mb-3 text-lg">
+                          <AlertCircle size={24} /> {t("action_required") || "Action Requise"}
+                        </div>
+                        <p className="text-slate-700 dark:text-slate-300 font-medium text-base">&ldquo;{application.admin_feedback}&rdquo;</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t("student_type_label") || "Type d'Étudiant"}</p>
+                        <p className="font-extrabold text-2xl">{application.student_type}</p>
+                      </div>
+                      <div className="bg-blue-50/50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t("academic_average") || "Moyenne Académique"}</p>
+                        <p className="font-extrabold text-2xl text-blue-600">{parseFloat(application.grade_average).toFixed(2)} / 20</p>
+                      </div>
+                      <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t("major_specialty") || "Filière / Spécialité"}</p>
+                        <p className="font-extrabold text-2xl">{application.filière || application.filiere}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 pt-8 border-t border-slate-200/50 dark:border-slate-700/50">
+                      {application.status === 'approved' && (
+                        <button onClick={handleDownloadPDF} className="btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-500/20 font-bold border-none transition-transform hover:scale-105 py-3">
+                          <Download size={20} className="mr-2" /> {t("download_attestation") || "Télécharger l'Attestation"}
+                        </button>
+                      )}
+                      {['pending', 'rejected', 'incomplete'].includes(application.status) && (
+                        <Link to="/apply?edit=true" className="btn btn-outline border-blue-200 hover:border-blue-600 bg-white dark:bg-transparent font-bold py-3 text-slate-700 dark:text-slate-200">
+                          <Edit3 size={20} className="mr-2" />
+                          {application.status === 'rejected' ? t('reapply') : t('edit_application')}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            {application?.history?.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="bento-card"
+              >
+                <h3 className="font-extrabold text-xl mb-8 flex items-center gap-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600">
+                    <Clock size={24} />
+                  </div> {t("decision_history") || "Historique des Décisions"}
+                </h3>
+                <div className="space-y-8 relative before:absolute before:left-3 before:top-3 before:bottom-3 before:w-1 before:bg-slate-100 dark:before:bg-slate-800">
+                  {application.history.map((h, i) => (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }} key={h.id} className="relative pl-10">
+                      <div className={`absolute left-[3px] top-1.5 w-6 h-6 rounded-full border-[4px] border-white dark:border-[#0f172a] ${i === 0 ? 'bg-blue-600 shadow-lg shadow-blue-500/40 z-10' : 'bg-slate-400 z-0'}`}></div>
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-black text-lg capitalize text-slate-800 dark:text-slate-100">{h.status === 'approved' ? 'Approuvée' : h.status}</span>
+                          <span className="text-sm font-bold text-slate-400 bg-white dark:bg-slate-900 px-3 py-1 rounded-full">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                        </div>
+                        {h.comment && <p className="text-base text-slate-600 dark:text-slate-400 italic">"{h.comment}"</p>}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Right Column (Side Widgets) */}
+          <div className="lg:col-span-4 flex flex-col gap-6 md:gap-8">
+            {application?.status === 'approved' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
+                className="bento-card overflow-hidden !p-0 border-emerald-500/30 ring-1 ring-emerald-500/20"
+              >
+                <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/10 flex items-center gap-3 border-b border-emerald-100 dark:border-emerald-800/30">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-800/50 rounded-xl text-emerald-600 dark:text-emerald-400">
+                    <DoorOpen size={24} />
+                  </div>
+                  <h3 className="font-extrabold text-xl">{t("room_assignment")}</h3>
+                </div>
+                <div className="p-8 text-center relative overflow-hidden">
+                  <div className="absolute -right-8 -bottom-8 opacity-5">
+                    <DoorOpen size={150} />
+                  </div>
+                  {application.room ? (
+                    <div className="relative z-10">
+                      <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20 ring-8 ring-emerald-50 dark:ring-emerald-900/10">
+                        <CheckCircle size={48} strokeWidth={1.5} />
+                      </div>
+                      <p className="font-bold text-slate-500 mb-2 uppercase tracking-widest text-xs">{t("your_room") || "Votre Chambre"}</p>
+                      <h2 className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-500 to-teal-600 mb-4">{application.room.room_number}</h2>
+                      <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 px-4 py-2 text-sm border-none shadow-sm">{t("assignment_validated") || "Affectation Validée"}</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-6 relative z-10">
+                      <div className="alert bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-400 font-medium">
+                        {t("payment_required_room") || "Paiement des frais de dossier de 500 MAD requis pour révéler votre chambre."}
+                      </div>
                       <button
                         onClick={async () => {
                           try {
-                            const res = await api.post('/payments/create-checkout-session');
-                            window.location.href = res.data.checkout_url;
-                          } catch (err) {
-                            toast.error("Échec de l'initialisation du paiement");
-                          }
+                            const res = await createCheckoutSession();
+                            window.location.href = res.checkout_url;
+                          } catch { toast.error("Échec de l'initialisation du paiement"); }
                         }}
-                        className="btn btn-primary w-full py-3"
+                        className="btn bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 w-full py-4 text-base font-black shadow-xl transition-transform hover:scale-105"
                       >
-                        Payer les frais via Stripe
+                        {t("pay_now_stripe") || "Payer maintenant (Stripe)"}
                       </button>
                     </div>
-                    {roomError && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{roomError}</div>}
-                    <form onSubmit={handleAutoAssign}><button type="submit" className="btn btn-primary" style={{ width: '100%', background: '#10b981', border: 'none', opacity: 0.5 }} disabled={true}>Obtenir ma Chambre (Paiement requis)</button></form>
-                  </div>
-                )}
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}
+              className="bento-card !p-0 overflow-hidden"
+            >
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+                <h3 className="font-extrabold text-xl flex items-center gap-3">
+                  <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-xl text-slate-700 dark:text-slate-300">
+                    <User size={20} />
+                  </div> {t("my_profile") || "Mon Profil"}
+                </h3>
+                <AnimatePresence mode="wait">
+                  {!editingProfile && profile && (
+                    <motion.button
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }}
+                      className="text-sm font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      Modifier
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
-          )}
 
-          <div className="glass-panel dash-card delay-2">
-            <div className="dash-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><User size={24} style={{ color: 'var(--primary)' }} /> <h3>{t("profile")}</h3></div>
-              {profile && !editingProfile && <button className="btn-text" onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }}><Edit3 size={16} /> Modifier</button>}
-            </div>
-            <div className="dash-body">
-              {profile ? editingProfile ? (
-                <form onSubmit={handleProfileUpdate} style={{ display: 'grid', gap: '1rem' }}>
-                  <div><label className="form-label">Téléphone</label><input type="text" className="form-input" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} required /></div>
-                  <div><label className="form-label">Adresse</label><input type="text" className="form-input" value={profileForm.address} onChange={e => setProfileForm({ ...profileForm, address: e.target.value })} required /></div>
-                  <div><label className="form-label">Ville</label><input type="text" className="form-input" value={profileForm.city} onChange={e => setProfileForm({ ...profileForm, city: e.target.value })} required /></div>
-                  <div style={{ display: 'flex', gap: '1rem' }}><button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setEditingProfile(false)}>Annuler</button><button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={profileSaving}>{profileSaving ? 'Enregistrement...' : 'Enregistrer'}</button></div>
-                </form>
-              ) : (
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  <div><p className="status-label">Nom Complet</p><p className="status-value">{profile.full_name}</p></div>
-                  <div><p className="status-label">Téléphone</p><p className="status-value">{profile.phone}</p></div>
-                  <div><p className="status-label">Ville/Province</p><p className="status-value">{profile.city} / {profile.province}</p></div>
-                </div>
-              ) : <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}><p>Profil non complété.</p></div>}
-            </div>
-          </div>
-        </div>
-      </div>
+              <div className="p-6">
+                <AnimatePresence mode="wait">
+                  {editingProfile ? (
+                    <motion.form
+                      key="form" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      onSubmit={handleProfileUpdate} className="space-y-5"
+                    >
+                      <div className="form-group mb-0">
+                        <label className="form-label">{t("phone") || "Téléphone"}</label>
+                        <input type="text" className="form-input shadow-inner" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} />
+                      </div>
+                      <div className="form-group mb-0">
+                        <label className="form-label">Adresse</label>
+                        <input type="text" className="form-input shadow-inner" value={profileForm.address} onChange={e => setProfileForm({ ...profileForm, address: e.target.value })} />
+                      </div>
+                      <div className="form-group mb-0">
+                        <label className="form-label">Ville</label>
+                        <input type="text" className="form-input shadow-inner" value={profileForm.city} onChange={e => setProfileForm({ ...profileForm, city: e.target.value })} />
+                      </div>
+                      <div className="flex gap-4 pt-4">
+                        <button type="button" onClick={() => setEditingProfile(false)} className="btn btn-outline flex-1">Annuler</button>
+                        <button type="submit" disabled={profileSaving} className="btn btn-primary flex-1 shadow-lg shadow-blue-500/20">
+                          {profileSaving ? '...' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    </motion.form>
+                  ) : (
+                    <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg shrink-0">
+                          <User className="text-slate-500 dark:text-slate-400" size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("full_name") || "Nom Complet"}</p>
+                          <p className="font-extrabold text-slate-800 dark:text-slate-100 text-lg">{profile?.full_name}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg shrink-0">
+                          <Phone className="text-slate-500 dark:text-slate-400" size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("phone") || "Téléphone"}</p>
+                          <p className="font-extrabold text-slate-800 dark:text-slate-100">{profile?.phone || t('not_provided')}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg shrink-0">
+                          <MapPin className="text-slate-500 dark:text-slate-400" size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("city_province") || "Ville / Province"}</p>
+                          <p className="font-extrabold text-slate-800 dark:text-slate-100">{profile?.city} / {profile?.province}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
 
-      {application && (
-        <div className="glass-panel dash-card" style={{ borderTop: '4px solid var(--secondary)', marginTop: '2rem', padding: 0, overflow: 'hidden' }}>
-          <div className="dash-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)', padding: '1rem 2rem', borderBottom: '1px solid var(--card-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><MessageCircle size={24} style={{ color: 'var(--secondary)' }} /> <h3 style={{ margin: 0 }}>{t("chat_support")}</h3></div>
-            <span className="badge" style={{ background: 'rgba(124, 58, 237, 0.1)', color: 'var(--secondary)' }}>🛡️ Administration Directe</span>
-          </div>
-          <div className="dash-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '400px', padding: '1.5rem' }}>
-            <div id="chat-messages-container" style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'var(--bg-color)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.75rem', border: '1px solid var(--card-border)' }}>
-              {messages.length === 0 ? <p style={{ textAlign: 'center', fontStyle: 'italic', color: 'var(--text-muted)' }}>Posez vos questions ici !</p> : messages.map(msg => (
-                <div key={msg.id} style={{ alignSelf: msg.sender_role === 'admin' ? 'flex-start' : 'flex-end', maxWidth: '75%' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{msg.sender_role === 'admin' ? '🛡️ Administration' : 'Moi'}</div>
-                  <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: msg.sender_role === 'admin' ? 'var(--card-bg)' : 'linear-gradient(135deg, var(--primary), var(--secondary))', color: msg.sender_role === 'admin' ? 'var(--text-main)' : '#fff', border: '1px solid var(--card-border)' }}>{msg.message}</div>
-                </div>
-              ))}
-            </div>
-            <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.75rem' }}><input type="text" className="form-input" placeholder="Écrivez ici..." value={newMessage} onChange={e => setNewMessage(e.target.value)} style={{ marginBottom: 0, flex: 1 }} required /><button type="submit" className="btn btn-primary" style={{ padding: '0.8rem 1.5rem' }} disabled={chatLoading}>Envoyer</button></form>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+              className="bento-card bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none shadow-2xl shadow-blue-500/30 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+              <h4 className="font-black text-xl mb-3 flex items-center gap-3 relative z-10">
+                <MessageCircle size={24} /> {t('need_help')}
+              </h4>
+              <p className="text-blue-100 mb-6 leading-relaxed font-medium text-base relative z-10">
+                {t("support_description")}
+              </p>
+              <button onClick={() => setIsChatOpen(true)} className="w-full btn bg-white text-blue-700 hover:bg-slate-50 py-3.5 font-black text-base shadow-lg hover:scale-105 relative z-10">
+                {t("open_support")}
+              </button>
+            </motion.div>
           </div>
         </div>
       )}
 
-      {/* Modèle d'Attestation PDF (Caché pour html2pdf) */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-        <div id="attestation-pdf-template" style={{
-          width: '700px',
-          padding: '50px',
-          color: '#1a1a1a',
-          fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-          lineHeight: '1.6'
-        }}>
-          {/* En-tête */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #1e3a8a', paddingBottom: '20px', marginBottom: '40px' }}>
-            <img src="/logo_maroc.png" alt="Royaume du Maroc" style={{ height: '90px' }} />
-            <div style={{ textAlign: 'center' }}>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>Royaume du Maroc</h2>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '12px' }}>Ministère de l'Éducation Nationale du Préscolaire et des Sports</h2>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '12px' }}>Académie Régionale de l'Éducation et de la Formation</h2>
-              <h3 style={{ margin: '10px 0 0 0', fontSize: '15px', color: '#1e3a8a', fontWeight: '900' }}>Lycée Technique - Service Internat</h3>
+      {/* PDF Template (Hidden) */}
+      <div className="hidden">
+        <div id="attestation-pdf-template" className="p-16 text-slate-900 bg-white" style={{ width: '800px' }}>
+          <div className="flex justify-between items-center border-b-4 border-blue-900 pb-8 mb-12">
+            <img src="/logo_maroc.png" alt="Logo" className="h-24" />
+            <div className="text-center">
+              <h2 className="font-bold text-sm uppercase">Royaume du Maroc</h2>
+              <h2 className="text-xs">Ministère de l'Éducation Nationale</h2>
+              <h1 className="text-xl font-black text-blue-900 mt-4">LYCÉE TECHNIQUE MOHAMED V</h1>
             </div>
-            <img src="/logo_lycee.jpg" alt="Logo Lycée" style={{ height: '90px' }} />
+            <img src="/logo_lycee.jpg" alt="Logo" className="h-24" />
           </div>
-
-          {/* Titre */}
-          <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-            <h1 style={{
-              fontSize: '32px',
-              color: '#1e3a8a',
-              textDecoration: 'underline',
-              fontWeight: '900',
-              letterSpacing: '1px'
-            }}>ATTESTATION D'ADMISSION</h1>
-            <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>Année Universitaire : 2026/2027</p>
+          <div className="text-center mb-12">
+            <h1 className="text-3xl font-black underline decoration-blue-600 underline-offset-8">ATTESTATION D'ADMISSION</h1>
+            <p className="mt-4 text-slate-500 font-bold">Session Académique 2026/2027</p>
           </div>
-
-          {/* Corps de l'attestation */}
-          <div style={{ fontSize: '18px', marginBottom: '60px' }}>
-            <p style={{ marginBottom: '25px' }}>Le Directeur du Lycée Technique certifie par la présente que l'étudiant(e) :</p>
-
-            <div style={{ background: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="space-y-8 text-lg mb-20">
+            <p>Le Directeur du Lycée Technique certifie que l'étudiant(e) :</p>
+            <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+              <table className="w-full">
                 <tbody>
-                  <tr>
-                    <td style={{ padding: '8px 0', color: '#64748b', width: '30%' }}>Nom Complet :</td>
-                    <td style={{ padding: '8px 0', fontWeight: 'bold', fontSize: '20px' }}>{profile?.full_name || '................................................'}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '8px 0', color: '#64748b' }}>C.I.N :</td>
-                    <td style={{ padding: '8px 0', fontWeight: 'bold' }}>{profile?.cin || '...........................'}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '8px 0', color: '#64748b' }}>N° Téléphone :</td>
-                    <td style={{ padding: '8px 0', fontWeight: 'bold' }}>{profile?.phone || '...........................'}</td>
-                  </tr>
+                  <tr><td className="py-2 text-slate-500">{t("full_name") || "Nom Complet"} :</td><td className="py-2 font-black text-xl">{profile?.full_name}</td></tr>
+                  <tr><td className="py-2 text-slate-500">CIN :</td><td className="py-2 font-black">{profile?.cin}</td></tr>
+                  <tr><td className="py-2 text-slate-500">Filière :</td><td className="py-2 font-black text-blue-700">{application?.filière || application?.filiere}</td></tr>
                 </tbody>
               </table>
             </div>
-
-            <p style={{ marginBottom: '25px' }}>Est officiellement admis(e) au service d'internat dans la filière :</p>
-
-            <div style={{ borderLeft: '5px solid #1e3a8a', padding: '15px 25px', background: 'rgba(30, 58, 138, 0.03)', marginBottom: '30px' }}>
-              <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: '#1e3a8a' }}>{application?.filière || application?.filiere}</p>
-              <p style={{ fontSize: '14px', color: '#666', margin: '5px 0 0 0' }}>Type d'admission : {application?.student_type}</p>
-            </div>
-
+            <p>Est officiellement admis(e) au service d'internat pour l'année scolaire en cours.</p>
             {application?.room && (
-              <p style={{ marginBottom: '25px' }}>
-                Numéro de chambre affecté : <strong style={{ color: '#059669', fontSize: '22px' }}>{application.room.room_number}</strong>
-              </p>
+              <p className="font-bold">Numéro de chambre attribué : <span className="text-emerald-600 text-2xl ml-2">{application.room.room_number}</span></p>
             )}
-
-            <p style={{ marginTop: '40px', fontSize: '16px', fontStyle: 'italic', textAlign: 'justify' }}>
-              Cette attestation est délivrée pour valoir ce que de droit, sous réserve de la validation finale des documents originaux lors de la rentrée scolaire.
-            </p>
           </div>
-
-          {/* Signature */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '80px' }}>
-            <div style={{ fontSize: '15px' }}>
-              <p>Fait à : <strong>Beni Mellal</strong></p>
-              <p>Le : <strong>{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></p>
+          <div className="flex justify-between items-end mt-24">
+            <div className="text-sm">
+              <p>Fait à Beni Mellal, le</p>
+              <p className="font-bold">{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
-            <div style={{ textAlign: 'center', minWidth: '250px' }}>
-              <p style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: '60px' }}>Cachet et Signature de l'Administration</p>
-              {/* Emplacement pour cachet numérique ou signature */}
-              <div style={{ height: '80px', width: '200px', margin: '0 auto', border: '1px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                Cachet Officiel
-              </div>
+            <div className="text-center border-2 border-dashed border-slate-300 p-8 rounded-xl w-64 h-32 flex items-center justify-center text-slate-300 font-bold uppercase text-xs">
+              Cachet de l'Établissement
             </div>
-          </div>
-
-          {/* Pied de page */}
-          <div style={{
-            marginTop: '100px',
-            paddingTop: '15px',
-            borderTop: '1px solid #e2e8f0',
-            textAlign: 'center',
-            fontSize: '11px',
-            color: '#94a3b8'
-          }}>
-            Document généré automatiquement le {new Date().toLocaleString()} - Code de vérification : {Math.random().toString(36).substring(2, 10).toUpperCase()}
           </div>
         </div>
       </div>
+
       <ChatWindow
         applicationId={application?.id}
         isOpen={statusData?.application?.id && isChatOpen}
         onClose={() => setIsChatOpen(false)}
       />
 
-      {!isChatOpen && statusData?.application?.id && (
+      {!isChatOpen && application && (
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-2xl hover:scale-110 transition-all z-[100]"
+          className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50 group border border-white/20"
         >
-          <MessageCircle size={24} />
-          {application?.has_new_message && (
-            <span className="absolute top-0 right-0 w-4 height-4 bg-danger rounded-full border-2 border-white animate-pulse" />
+          <MessageCircle size={28} />
+          {application.has_new_message && (
+            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-[ping_1.5s_ease-in-out_infinite]"></span>
           )}
+          <span className="absolute right-full mr-4 px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl shadow-slate-900/20">
+            {t('need_help')} Chattez avec nous
+          </span>
         </button>
       )}
     </div>

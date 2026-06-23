@@ -60,7 +60,7 @@ const Select = ({
               ? 'border-red-500 focus:border-red-500 focus:ring-red-100 dark:focus:ring-red-900/30'
               : success
               ? 'border-green-500 focus:border-green-500 focus:ring-green-100 dark:focus:ring-green-900/30'
-              : 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30'
+              : 'border-gray-300 dark:border-gray-600 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/30'
             }
             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
             disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -80,9 +80,9 @@ const Select = ({
                 key={option.value}
                 type="button"
                 onClick={() => handleSelect(option)}
-                className={`w-full px-4 py-2.5 text-left hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center gap-2
+                className={`w-full px-4 py-2.5 text-left hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-2
                   ${(multiple ? Array.isArray(value) && value.includes(option.value) : value === option.value)
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-semibold'
                     : 'text-gray-900 dark:text-white'
                   }`}
               >

@@ -1,91 +1,59 @@
-import React, { useState } from 'react';
-import { AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import React from 'react';
+import { motion } from 'framer-motion';
 
-const Input = ({
+const Input = React.forwardRef(({
   label,
-  type = 'text',
-  placeholder,
-  value,
-  onChange,
   error,
-  hint,
-  required = false,
-  disabled = false,
   icon: Icon,
-  success = false,
   className = '',
-  showPasswordToggle = false,
-  inputClassName = '',
+  wrapperClassName = '',
   ...props
-}) => {
-  const [showPassword, setShowPassword] = useState(false);
-
-  const inputType = showPasswordToggle && showPassword ? 'text' : type;
-
+}, ref) => {
   return (
-    <div className="w-full">
+    <div className={`space-y-1.5 ${wrapperClassName}`}>
       {label && (
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      
-      <div className={`relative ${className}`}>
+      <div className="relative group">
         {Icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors">
             <Icon size={18} />
           </div>
         )}
-        
-        <input
-          type={inputType}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          disabled={disabled}
-          className={`w-full px-4 py-2.5 ${Icon ? 'pl-10' : ''} rounded-lg border-2 transition-all duration-200
-            ${error 
-              ? 'border-red-500 focus:border-red-500 focus:ring-red-100 dark:focus:ring-red-900/30' 
-              : success
-              ? 'border-green-500 focus:border-green-500 focus:ring-green-100 dark:focus:ring-green-900/30'
-              : 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30'
-            }
-            bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
-            disabled:opacity-50 disabled:cursor-not-allowed
-            ${inputClassName}`}
+        <motion.input
+          ref={ref}
+          whileFocus={{ scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className={`
+            w-full bg-slate-50 dark:bg-slate-900/50 
+            border-2 border-slate-200 dark:border-slate-800 
+            text-slate-900 dark:text-white rounded-xl
+            focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 
+            focus:ring-4 focus:ring-emerald-500/10 dark:focus:ring-emerald-400/10
+            transition-all duration-300
+            px-4 py-3 text-[0.95rem] font-medium
+            placeholder:text-slate-400 dark:placeholder:text-slate-600
+            ${Icon ? 'pl-11' : ''}
+            ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10' : ''}
+            ${className}
+          `}
           {...props}
         />
-
-        {showPasswordToggle && type === 'password' && (
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        )}
-
-        {success && !showPasswordToggle && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500">
-            <CheckCircle size={18} />
-          </div>
-        )}
       </div>
-
       {error && (
-        <div className="flex items-center gap-1.5 mt-1.5 text-sm text-red-600 dark:text-red-400">
-          <AlertCircle size={16} />
+        <motion.p 
+          initial={{ opacity: 0, y: -5 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="text-xs font-bold text-red-500 mt-1"
+        >
           {error}
-        </div>
-      )}
-
-      {hint && !error && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{hint}</p>
+        </motion.p>
       )}
     </div>
   );
-};
+});
 
+Input.displayName = 'Input';
 export default Input;

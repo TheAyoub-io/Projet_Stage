@@ -47,3 +47,15 @@ export const useUpdateApplicationStatus = () => {
     },
   });
 };
+
+export const useDeleteApplication = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => adminService.deleteApplication(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminApplications'] });
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+      queryClient.invalidateQueries({ queryKey: ['adminAnalytics'] });
+    },
+  });
+};

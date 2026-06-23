@@ -60,7 +60,7 @@ const EnhancedThemeSettings = () => {
                     whileTap={{ scale: 0.95 }}
                     className={`p-3 rounded-lg transition-all ${
                       colorScheme === value
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-emerald-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                     title={label}
@@ -90,7 +90,7 @@ const EnhancedThemeSettings = () => {
                     whileTap={{ scale: 0.95 }}
                     className={`p-3 rounded-lg transition-all text-${value === 'small' ? 'sm' : value === 'large' ? 'lg' : 'base'} font-medium ${
                       fontSize === value
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-emerald-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
@@ -108,7 +108,7 @@ const EnhancedThemeSettings = () => {
                 whileHover={{ x: 2 }}
                 className={`w-full px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
                   highContrast
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >

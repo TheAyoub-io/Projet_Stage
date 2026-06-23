@@ -13,7 +13,7 @@ const Spinner = ({ size = 'md', fullScreen = false, message = '' }) => {
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        className={`${sizes[size]} border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full`}
+        className={`${sizes[size]} border-4 border-gray-200 dark:border-gray-700 border-t-emerald-600 dark:border-t-emerald-400 rounded-full`}
       />
       {message && <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{message}</p>}
     </div>

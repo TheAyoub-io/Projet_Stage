@@ -1,5 +1,6 @@
 #from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..models.database import get_db
@@ -13,9 +14,19 @@ router = APIRouter(
 )
 
 @router.get("/all")
-def get_all_rooms(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    """Return all rooms with their current occupants (admin only)."""
-    rooms = db.query(Room).all()
+def get_all_rooms(
+    section: Optional[str] = Query(None, description="Filter by section: 'CPGE' or 'LYCEE'"),
+    category: Optional[str] = Query(None, description="Filter by CPGE category: 'A', 'B', 'C', 'D'"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    """Return all rooms with their current occupants (admin only). Optionally filter by section and/or category."""
+    query = db.query(Room)
+    if section:
+        query = query.filter(Room.student_section == section.upper())
+    if category:
+        query = query.filter(Room.category == category.upper())
+    rooms = query.all()
     result = []
     
     for room in rooms:
@@ -38,6 +49,8 @@ def get_all_rooms(db: Session = Depends(get_db), current_admin: User = Depends(g
             "room_number": room.room_number,
             "capacity": room.capacity,
             "gender_type": room.gender_type,
+            "student_section": room.student_section,
+            "category": room.category,
             "occupants": occupants,
             "occupancy_rate": (len(occupants) / room.capacity) * 100 if room.capacity > 0 else 0
         })
@@ -59,7 +72,9 @@ def get_available_rooms(db: Session = Depends(get_db), current_user: User = Depe
                 "room_number": room.room_number,
                 "capacity": room.capacity,
                 "available_beds": room.capacity - occupants_count,
-                "gender_type": room.gender_type
+                "gender_type": room.gender_type,
+                "student_section": room.student_section,
+                "category": room.category,
             })
             
     return available_rooms
@@ -68,7 +83,7 @@ import random
 
 @router.post("/auto-assign")
 def auto_assign_room(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Automatically assign an available room to an approved student, respecting gender constraints."""
+    """Automatically assign an available room to an approved student, respecting gender and section constraints."""
     application = db.query(Application).filter(Application.user_id == current_user.id).first()
     
     if not application:
@@ -80,10 +95,15 @@ def auto_assign_room(db: Session = Depends(get_db), current_user: User = Depends
     if application.room_id is not None:
         raise HTTPException(status_code=400, detail="Room already assigned.")
     
-    # Get student gender
+    # Get student gender and section
     student_gender = current_user.profile.gender if current_user.profile else None
     if not student_gender:
         raise HTTPException(status_code=400, detail="Student gender not set in profile.")
+    
+    student_section = application.student_type  # 'CPGE' or 'Lycée Technique'
+    # Normalize section
+    is_cpge = str(student_section).upper() == "CPGE"
+    section_filter = "CPGE" if is_cpge else "LYCEE"
         
     from sqlalchemy import func
     
@@ -97,21 +117,19 @@ def auto_assign_room(db: Session = Depends(get_db), current_user: User = Depends
         occupancy_subquery, Room.id == occupancy_subquery.c.room_id
     ).filter(
         Room.gender_type == student_gender,
+        Room.student_section == section_filter,
         func.coalesce(occupancy_subquery.c.occupant_count, 0) < Room.capacity
     ).order_by(
-        # 1. Prioritize rooms where people from the same filière already exist (requires joining application again, simple version below prioritizes mostly full rooms)
         func.coalesce(occupancy_subquery.c.occupant_count, 0).desc()
     ).first()
             
     if not available_room:
-        raise HTTPException(status_code=400, detail="No rooms matching your gender are currently available.")
+        raise HTTPException(status_code=400, detail="No rooms matching your profile are currently available.")
         
-    assigned_room = available_room
-    
-    application.room_id = assigned_room.id
+    application.room_id = available_room.id
     db.commit()
     
-    return {"message": "Room successfully assigned", "room_number": assigned_room.room_number}
+    return {"message": "Room successfully assigned", "room_number": available_room.room_number}
 
 @router.post("/auto-assign-all")
 def auto_assign_all_students(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
@@ -138,6 +156,7 @@ def auto_assign_all_students(db: Session = Depends(get_db), current_admin: User 
             'current': count,
             'capacity': r.capacity,
             'gender': r.gender_type,
+            'section': r.student_section,
             'filières': set([a.filière for a in db.query(Application).filter(Application.room_id == r.id).all()])
         }
 
@@ -145,23 +164,39 @@ def auto_assign_all_students(db: Session = Depends(get_db), current_admin: User 
         student_gender = app.user.profile.gender if app.user.profile else None
         if not student_gender:
             continue # skip students without gender
+        
+        # Determine section and CPGE category
+        is_cpge = str(app.student_type).upper() == "CPGE"
+        section_filter = "CPGE" if is_cpge else "LYCEE"
+        
+        cpge_category_filter = None
+        if is_cpge:
+            if "1ère année" in str(app.filière):
+                cpge_category_filter = "A" if student_gender == "Male" else "C"
+            elif "2ème année" in str(app.filière):
+                cpge_category_filter = "B" if student_gender == "Male" else "D"
             
         candidate_rooms = []
         for rid, data in room_occupancy.items():
-            if data['gender'] == student_gender and data['current'] < data['capacity']:
-                candidate_rooms.append(data)
+            if data['gender'] != student_gender: continue
+            if data['section'] != section_filter: continue
+            if data['current'] >= data['capacity']: continue
+            
+            if is_cpge and cpge_category_filter:
+                if data['room'].category != cpge_category_filter:
+                    continue
+                    
+            candidate_rooms.append(data)
                 
         if not candidate_rooms:
-            continue # No available rooms for this gender
+            continue # No available rooms for this gender/section
 
-        # Scoring candidate rooms for smart clustering
-        # 1. Score +10 if room has students from same filière
-        # 2. Score + current occupants to fill half-empty rooms before making new ones completely full
+        # Scoring: fill near-full rooms first, bonus if same filière
         best_room = None
         best_score = -1
         
         for r_data in candidate_rooms:
-            score = r_data['current'] # Prioritize filling almost full rooms
+            score = r_data['current']
             if app.filière in r_data['filières']:
                 score += 10
             
@@ -189,7 +224,9 @@ def get_unassigned_students(db: Session = Depends(get_db), current_admin: User =
     return [{
         "id": s.id,
         "student_name": s.user.profile.full_name if s.user and s.user.profile else s.user.email,
-        "filiere": s.filière
+        "filiere": s.filière,
+        "student_type": s.student_type,
+        "gender": s.user.profile.gender if s.user and s.user.profile else None
     } for s in students]
 
 @router.post("/{room_id}/assign/{application_id}")
@@ -200,6 +237,28 @@ def assign_student(room_id: int, application_id: int, db: Session = Depends(get_
     
     if not room or not application:
         raise HTTPException(status_code=404, detail="Room or Application not found")
+
+    # Constraint 1: Section Match
+    is_app_cpge = str(application.student_type).upper() == "CPGE"
+    app_section = "CPGE" if is_app_cpge else "LYCEE"
+    if app_section != room.student_section:
+        raise HTTPException(status_code=400, detail=f"Impossible d'affecter un étudiant de la section {app_section} à une chambre {room.student_section}.")
+
+    # Constraint 2: Gender Match
+    student_gender = application.user.profile.gender if application.user and application.user.profile else None
+    if not student_gender or student_gender != room.gender_type:
+        raise HTTPException(status_code=400, detail="Le genre de l'étudiant ne correspond pas au genre de la chambre.")
+        
+    # Constraint 3: CPGE Category Match
+    if is_app_cpge:
+        cpge_category_filter = None
+        if "1ère année" in str(application.filière):
+            cpge_category_filter = "A" if student_gender == "Male" else "C"
+        elif "2ème année" in str(application.filière):
+            cpge_category_filter = "B" if student_gender == "Male" else "D"
+            
+        if cpge_category_filter and room.category != cpge_category_filter:
+            raise HTTPException(status_code=400, detail=f"L'étudiant de ce niveau doit être affecté à la catégorie {cpge_category_filter}.")
         
     # Check capacity
     occupants_count = db.query(Application).filter(Application.room_id == room.id).count()
@@ -220,3 +279,4 @@ def remove_student(room_id: int, application_id: int, db: Session = Depends(get_
     application.room_id = None
     db.commit()
     return {"message": "Student removed from room"}
+

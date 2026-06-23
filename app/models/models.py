@@ -18,12 +18,19 @@ class ApplicationStatus(str, enum.Enum):
     WAITLISTED = "waitlisted"
     APPROVED = "approved"
     REJECTED = "rejected"
+    AWAITING_RECEIPT = "awaiting_receipt"
 
 class DocumentType(str, enum.Enum):
     CIN_COPY = "CIN_copy"
     TRANSCRIPT = "transcript"
     RESIDENCY_CERT = "residency_cert"
     FEE_RECEIPT = "fee_receipt"
+
+class TicketStatus(str, enum.Enum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
 
 class User(Base):
     __tablename__ = "users"
@@ -43,7 +50,7 @@ class Profile(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     full_name = Column(String(255), nullable=False)
-    cin = Column(String(20), unique=True, nullable=False)
+    cin = Column(String(20), unique=False, nullable=False)
     phone = Column(String(20), nullable=False)
     date_of_birth = Column(Date, nullable=False)
     address = Column(Text, nullable=False)
@@ -87,8 +94,12 @@ class Room(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     room_number = Column(String(50), unique=True, nullable=False)
-    capacity = Column(Integer, nullable=False, default=4)
-    gender_type = Column(String(50), nullable=False) # 'Male' or 'Female'
+    capacity = Column(Integer, nullable=False, default=3)
+    gender_type = Column(String(50), nullable=False)  # 'Male' or 'Female'
+    # Section distinguishes CPGE students from Lycée students
+    student_section = Column(String(20), nullable=False, default="LYCEE")  # 'CPGE' or 'LYCEE'
+    # Category is only used for CPGE rooms: 'A', 'B' (male) or 'C', 'D' (female)
+    category = Column(String(5), nullable=True)  # 'A', 'B', 'C', 'D' or None
 
     applications = relationship("Application", back_populates="room")
 
@@ -175,3 +186,29 @@ class StatusHistory(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     application = relationship("Application", back_populates="history")
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    subject = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(Enum(TicketStatus), nullable=False, default=TicketStatus.OPEN)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", backref="tickets")
+    messages = relationship("TicketMessage", back_populates="ticket", cascade="all, delete-orphan")
+
+class TicketMessage(Base):
+    __tablename__ = "ticket_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    ticket = relationship("Ticket", back_populates="messages")
+    sender = relationship("User", backref="sent_messages")

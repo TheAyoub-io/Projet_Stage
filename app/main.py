@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .routers import auth, applications, admin, rooms, notifications, chat, payment
+from .routers import auth, applications, admin, rooms, notifications, chat, payment, tickets
 from .models.database import engine, Base
 
 # Create tables automatically on startup
@@ -42,6 +42,28 @@ app.include_router(rooms.router)
 app.include_router(notifications.router)
 app.include_router(chat.router)
 app.include_router(payment.router)
+app.include_router(tickets.router)
+
+from fastapi import WebSocket, WebSocketDisconnect, Depends
+from .websockets import manager
+from .auth.dependencies import get_user_from_token
+from .models.database import get_db
+from sqlalchemy.orm import Session
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Depends(get_db)):
+    user = await get_user_from_token(token, db)
+    if not user:
+        await websocket.close(code=1008)
+        return
+        
+    await manager.connect(websocket, user.id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Handle incoming WS messages if needed
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user.id)
 
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError

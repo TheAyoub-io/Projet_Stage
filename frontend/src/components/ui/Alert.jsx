@@ -29,8 +29,8 @@ const Alert = ({
     },
     info: {
       icon: Info,
-      colors: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
-      accentColor: 'text-blue-600 dark:text-blue-400',
+      colors: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200',
+      accentColor: 'text-emerald-600 dark:text-emerald-400',
     },
   };
 

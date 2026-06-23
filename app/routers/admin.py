@@ -3,7 +3,22 @@ from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, case
+import time
+
+# Simple in-memory cache for admin dashboard (cleared on reload)
+ADMIN_CACHE = {}
+CACHE_TTL = 300 # 5 minutes
+
+def get_cached(key):
+    if key in ADMIN_CACHE:
+        val, expiry = ADMIN_CACHE[key]
+        if time.time() < expiry:
+            return val
+    return None
+
+def set_cache(key, val):
+    ADMIN_CACHE[key] = (val, time.time() + CACHE_TTL)
 
 from ..models.database import get_db
 from ..models.models import User, Application, Profile, ApplicationStatus, Room, StatusHistory, UserRole, ChatMessage
@@ -48,6 +63,12 @@ def list_applications(
 
     if status_filter:
         query = query.filter(Application.status == status_filter)
+
+    # Order by: PENDING first, then by submitted_at descending
+    query = query.order_by(
+        case((Application.status == ApplicationStatus.PENDING, 0), else_=1),
+        Application.submitted_at.desc()
+    )
 
     total = query.count()
     applications = query.offset((page - 1) * limit).limit(limit).all()
@@ -135,16 +156,57 @@ def update_application_status(
         application.admin_feedback = update.admin_feedback
 
     if update.status == ApplicationStatus.APPROVED:
-        # Check capacity
-        total_capacity = db.query(func.sum(Room.capacity)).scalar() or 0
-        total_approved = db.query(Application).filter(Application.status == ApplicationStatus.APPROVED).count()
-        if total_approved >= total_capacity:
-            application.status = ApplicationStatus.WAITLISTED
-            update.status = ApplicationStatus.WAITLISTED
-            application.admin_feedback = "Placed on waitlist automatically due to full capacity."
+        # Automatic room assignment based on gender and section
+        profile = db.query(Profile).filter(Profile.user_id == application.user_id).first()
+        gender = profile.gender if profile else None
+        
+        if not gender or gender not in ['Male', 'Female']:
+            application.admin_feedback = "Approuvé, mais affectation automatique impossible (Genre non spécifié)."
+        else:
+            is_cpge = application.student_type.value == "CPGE"
+            section_filter = "CPGE" if is_cpge else "LYCEE"
+            
+            # Base query for rooms matching section and gender
+            query = db.query(Room).filter(
+                Room.student_section == section_filter,
+                Room.gender_type == gender
+            )
+            
+            # Apply specific sorting/filtering logic
+            if is_cpge:
+                categories = ['A', 'B'] if gender == 'Male' else ['C', 'D']
+                query = query.filter(Room.category.in_(categories)).order_by(Room.category.asc(), Room.room_number.asc())
+            else:
+                query = query.order_by(Room.room_number.asc())
+                
+            rooms = query.all()
+            room_assigned = False
+            
+            for room in rooms:
+                # Count current occupants in this room
+                occupancy = db.query(Application).filter(
+                    Application.room_id == room.id
+                ).count()
+                
+                if occupancy < room.capacity:
+                    application.room_id = room.id
+                    room_assigned = True
+                    break
+                    
+            if not room_assigned:
+                application.status = ApplicationStatus.WAITLISTED
+                update.status = ApplicationStatus.WAITLISTED
+                section_name = "CPGE" if is_cpge else "Lycée Technique"
+                application.admin_feedback = f"Placé sur liste d'attente : Plus de places disponibles dans les pavillons {section_name} pour votre genre."
 
     db.commit()
     db.refresh(application)
+
+    # Invalidate cache
+    if "application_stats" in ADMIN_CACHE:
+        del ADMIN_CACHE["application_stats"]
+    if "application_analytics" in ADMIN_CACHE:
+        del ADMIN_CACHE["application_analytics"]
 
     # 0. Record Audit Log
     record_audit_log(db, admin.id, f"UPDATE_STATUS_{update.status.value}", "admin", f"App ID: {application.id}")
@@ -185,6 +247,34 @@ def update_application_status(
 
     return application
 
+@router.delete("/applications/{application_id}")
+def delete_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Delete an application."""
+    application = db.query(Application).filter(Application.id == application_id).first()
+
+    if not application:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Application with id {application_id} not found"
+        )
+
+    db.delete(application)
+    db.commit()
+
+    # Invalidate cache
+    if "application_stats" in ADMIN_CACHE:
+        del ADMIN_CACHE["application_stats"]
+    if "application_analytics" in ADMIN_CACHE:
+        del ADMIN_CACHE["application_analytics"]
+
+    record_audit_log(db, admin.id, "DELETE_APPLICATION", "admin", f"Deleted App ID: {application_id}")
+
+    return {"message": "Application successfully deleted"}
+
 
 @router.get("/stats")
 def get_application_stats(
@@ -192,6 +282,10 @@ def get_application_stats(
     admin: User = Depends(get_current_admin),
 ):
     """Return accurate aggregate counts for all applications (no pagination)."""
+    cached = get_cached("application_stats")
+    if cached:
+        return cached
+
     pending = db.query(Application).filter(Application.status == ApplicationStatus.PENDING).count()
     approved = db.query(Application).filter(Application.status == ApplicationStatus.APPROVED).count()
     rejected = db.query(Application).filter(Application.status == ApplicationStatus.REJECTED).count()
@@ -200,7 +294,7 @@ def get_application_stats(
 
     total = pending + approved + rejected + incomplete + waitlisted
 
-    return {
+    result = {
         "total": total,
         "pending": pending,
         "approved": approved,
@@ -208,6 +302,8 @@ def get_application_stats(
         "incomplete": incomplete,
         "waitlisted": waitlisted
     }
+    set_cache("application_stats", result)
+    return result
 
 
 @router.get("/analytics")
@@ -216,6 +312,10 @@ def get_application_analytics(
     admin: User = Depends(get_current_admin),
 ):
     """Return aggregated data for dashboard charts."""
+    cached = get_cached("application_analytics")
+    if cached:
+        return cached
+
     # Group by Province
     province_stats = db.query(
         Profile.province, 
@@ -241,11 +341,13 @@ def get_application_analytics(
      .group_by(func.date(Application.submitted_at))\
      .order_by(func.date(Application.submitted_at)).all()
 
-    return {
+    result = {
         "by_province": [{"name": p[0], "value": p[1]} for p in province_stats if p[0]],
         "by_filiere": [{"name": f[0], "value": f[1]} for f in filiere_stats if f[0]],
         "trends": [{"date": str(t[0]), "count": t[1]} for t in trends]
     }
+    set_cache("application_analytics", result)
+    return result
 
 
 # ─── Email Notification Service ───────────────────────────────────────────────

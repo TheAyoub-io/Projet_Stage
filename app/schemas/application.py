@@ -9,6 +9,8 @@ class RoomResponse(BaseModel):
     room_number: str
     capacity: int
     gender_type: str
+    category: Optional[str] = None
+    student_section: str
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -35,6 +37,7 @@ class ProfileResponse(BaseModel):
     address: str
     city: str
     province: str
+    gender: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

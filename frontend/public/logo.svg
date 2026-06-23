@@ -1,40 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
   <defs>
-    <!-- Top Petal Gradient: Vibrant Blue to Royal Blue -->
-    <linearGradient id="grad1" x1="100" y1="30" x2="100" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="100%" stop-color="#1D4ED8" />
+    <linearGradient id="mainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" /> <!-- Indigo -->
+      <stop offset="100%" stop-color="#0EA5E9" /> <!-- Light Blue -->
     </linearGradient>
-    
-    <!-- Bottom Right Petal: Indigo to Deep Blue -->
-    <linearGradient id="grad2" x1="100" y1="30" x2="100" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#818CF8" />
-      <stop offset="100%" stop-color="#1E3A8A" />
+    <linearGradient id="accentGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" /> <!-- Emerald -->
+      <stop offset="100%" stop-color="#34D399" />
     </linearGradient>
-    
-    <!-- Bottom Left Petal: Cyan to Primary Blue -->
-    <linearGradient id="grad3" x1="100" y1="30" x2="100" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2DD4BF" />
-      <stop offset="100%" stop-color="#2563EB" />
-    </linearGradient>
-    
-    <!-- Outer Glow for a premium feel -->
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1E3A8A" flood-opacity="0.15" />
+    <filter id="glow">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#4F46E5" flood-opacity="0.3" />
+    </filter>
+    <filter id="softShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15" />
     </filter>
   </defs>
 
-  <g filter="url(#glow)">
-    <!-- Top Petal -->
-    <path d="M 100 25 C 150 25 150 100 100 125 C 50 100 50 25 100 25 Z" fill="url(#grad1)" opacity="0.85" />
-    
-    <!-- Bottom Right Petal -->
-    <path d="M 100 25 C 150 25 150 100 100 125 C 50 100 50 25 100 25 Z" fill="url(#grad2)" opacity="0.85" transform="rotate(120 100 100)" />
-    
-    <!-- Bottom Left Petal -->
-    <path d="M 100 25 C 150 25 150 100 100 125 C 50 100 50 25 100 25 Z" fill="url(#grad3)" opacity="0.85" transform="rotate(240 100 100)" />
-  </g>
+  <!-- Modern App Icon Base -->
+  <rect width="200" height="200" rx="48" fill="url(#mainGrad)" filter="url(#glow)"/>
+
+  <!-- Academic Cap (Top) -->
+  <path d="M100 45 L155 75 L100 105 L45 75 Z" fill="#FFFFFF" filter="url(#softShadow)"/>
   
-  <!-- Central Star / Light Core -->
-  <circle cx="100" cy="100" r="12" fill="#FFFFFF" opacity="0.95" />
+  <!-- Digital Central Pillar -->
+  <rect x="90" y="105" width="20" height="40" rx="10" fill="url(#accentGrad)" />
+  
+  <!-- "e" / Smile / Network Connection Arch -->
+  <path d="M60 115 A 50 50 0 0 0 140 115" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" fill="none" filter="url(#softShadow)"/>
+  
+  <!-- Connection Dot -->
+  <circle cx="140" cy="115" r="14" fill="url(#accentGrad)" filter="url(#softShadow)"/>
 </svg>

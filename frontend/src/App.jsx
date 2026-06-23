@@ -58,10 +58,11 @@ const AdminRoute = ({ children }) => {
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const { i18n } = useTranslation();
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={location.pathname}
+        key={`${location.pathname}-${i18n.language}`}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
@@ -141,9 +142,9 @@ function App() {
           },
         }}
       />
-      <div className="app-container">
+      <div className="flex flex-col min-h-screen w-full">
         <Navbar />
-        <main className="main-content">
+        <main className="flex-1 flex flex-col pt-[64px] w-full">
           <AnimatedRoutes />
         </main>
         <Footer />

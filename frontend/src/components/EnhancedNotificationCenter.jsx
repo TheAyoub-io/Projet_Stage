@@ -67,7 +67,7 @@ const EnhancedNotificationCenter = ({ className = '' }) => {
   const getNotificationColor = (type) => {
     switch (type) {
       case 'application_status':
-        return 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700';
+        return 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700';
       case 'document_required':
         return 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700';
       case 'payment_received':
@@ -138,7 +138,7 @@ const EnhancedNotificationCenter = ({ className = '' }) => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                       className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-4 ${
-                        notif.is_read ? 'opacity-75' : 'border-blue-600'
+                        notif.is_read ? 'opacity-75' : 'border-emerald-600'
                       } ${getNotificationColor(notif.type)}`}
                       onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
                     >
@@ -183,7 +183,7 @@ const EnhancedNotificationCenter = ({ className = '' }) => {
               <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                  className="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors text-sm"
                 >
                   {t('mark_all_as_read')}
                 </button>

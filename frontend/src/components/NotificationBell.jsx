@@ -94,7 +94,7 @@ const NotificationBell = () => {
     const getIcon = (type) => {
         switch (type) {
             case 'message': return <MessageSquare size={16} className="text-indigo-600" />;
-            case 'status_change': return <AlertCircle size={16} className="text-blue-600" />;
+            case 'status_change': return <AlertCircle size={16} className="text-emerald-600" />;
             default: return <Bell size={16} className="text-slate-400" />;
         }
     };
@@ -103,7 +103,7 @@ const NotificationBell = () => {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`p-2 rounded-full transition-all relative ${isOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`p-2 rounded-full transition-all relative ${isOpen ? 'bg-emerald-50 text-emerald-600' : 'text-slate-600 hover:bg-slate-100'}`}
                 aria-label="Notifications"
             >
                 <Bell size={22} />
@@ -132,20 +132,20 @@ const NotificationBell = () => {
                             <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
                                 <button
                                     onClick={() => setActiveTab('all')}
-                                    className={`px-3 py-1 text-[10px] uppercase font-black rounded-md transition-all ${activeTab === 'all' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                                    className={`px-3 py-1 text-[10px] uppercase font-black rounded-md transition-all ${activeTab === 'all' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}
                                 >
                                     Toutes
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('unread')}
-                                    className={`px-3 py-1 text-[10px] uppercase font-black rounded-md transition-all ${activeTab === 'unread' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                                    className={`px-3 py-1 text-[10px] uppercase font-black rounded-md transition-all ${activeTab === 'unread' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}
                                 >
                                     Non lues
                                 </button>
                             </div>
                             <div className="flex gap-1">
                                 {unreadCount > 0 && (
-                                    <button onClick={markAllRead} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Tout marquer lu">
+                                    <button onClick={markAllRead} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" title="Tout marquer lu">
                                         <Check size={16} />
                                     </button>
                                 )}
@@ -172,9 +172,9 @@ const NotificationBell = () => {
                                     <div
                                         key={notif.id}
                                         onClick={() => markAsRead(notif)}
-                                        className={`p-4 flex gap-4 transition-colors cursor-pointer relative group ${notif.is_read ? 'bg-white dark:bg-slate-900' : 'bg-blue-50/30 dark:bg-blue-900/10 hover:bg-blue-50/50'}`}
+                                        className={`p-4 flex gap-4 transition-colors cursor-pointer relative group ${notif.is_read ? 'bg-white dark:bg-slate-900' : 'bg-emerald-50/30 dark:bg-emerald-900/10 hover:bg-emerald-50/50'}`}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${notif.is_read ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${notif.is_read ? 'bg-slate-100 dark:bg-slate-800' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
                                             {getIcon(notif.type)}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ const NotificationBell = () => {
                                             </div>
                                         </div>
                                         {!notif.is_read && (
-                                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-600"></div>
+                                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-emerald-600"></div>
                                         )}
                                     </div>
                                 ));

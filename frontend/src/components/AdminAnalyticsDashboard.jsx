@@ -9,7 +9,7 @@ import api from '../lib/axios';
 // StatCard Component
 const StatCard = ({ icon: Icon, label, value, trend, color = 'blue' }) => {
   const colors = {
-    blue: 'from-blue-600 to-blue-400',
+    blue: 'from-emerald-600 to-emerald-400',
     green: 'from-green-600 to-green-400',
     yellow: 'from-yellow-600 to-yellow-400',
     red: 'from-red-600 to-red-400',

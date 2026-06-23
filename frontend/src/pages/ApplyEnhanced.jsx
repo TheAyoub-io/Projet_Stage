@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, BookOpen, Upload, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { User, BookOpen, Upload, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, FileText, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -15,8 +15,8 @@ import i18n from '../i18n';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx');
 
-const FILIERES_CPGE = ['MPSI', 'PCSI', 'TSI', 'ECT', 'ECS', 'BCPST'];
-const FILIERES_LYCEE = ['Sciences Mathématiques', 'Sciences Physiques', 'SVT', 'Sciences Économiques', 'Techniques de Gestion', 'Électromécanique', 'Électrotechnique'];
+const FILIERES_CPGE = ['MPSI', 'PCSI', 'TSI', 'ECS'];
+const FILIERES_LYCEE = ['Sciences Économiques', 'Sciences Mathématiques', 'Arts Appliquées', 'Électromécanique', 'Électrotechnique'];
 
 const FileUploadField = ({ label, file, onFileChange, accept = '.pdf,.jpg,.jpeg,.png', maxSize = 5 }) => {
   const { t } = useTranslation();
@@ -32,31 +32,62 @@ const FileUploadField = ({ label, file, onFileChange, accept = '.pdf,.jpg,.jpeg,
     }
   };
 
+  // Generate a unique ID to link labels and inputs
+  const idPrefix = React.useId();
+
   return (
     <div
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
-      className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-colors"
-      onClick={() => inputRef.current?.click()}
+      onClick={() => { if (!file) document.getElementById(`${idPrefix}-upload`).click(); }}
+      className={`border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${file ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-gray-300 dark:border-gray-600 hover:border-emerald-500 bg-white dark:bg-slate-800'}`}
     >
       <input
+        id={`${idPrefix}-scan`}
         ref={inputRef}
         type="file"
-        accept={accept}
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => onFileChange(e.target.files?.[0])}
+        className="hidden"
+      />
+      <input
+        id={`${idPrefix}-upload`}
+        type="file"
+        accept="image/*,.pdf"
         onChange={(e) => onFileChange(e.target.files?.[0])}
         className="hidden"
       />
 
-      <div className="flex items-center justify-center gap-3">
-        <FileText className="text-gray-400" size={24} />
-        <div className="text-left">
-          <p className="font-semibold text-gray-900 dark:text-white">{label}</p>
-          {file ? (
-            <p className="text-sm text-green-600 dark:text-green-400">{file.name}</p>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('drag_drop_file')}</p>
-          )}
+      <div className="flex flex-col items-center justify-center gap-3">
+        <div className="flex items-center gap-3 w-full">
+          <div className={`p-2 rounded-full ${file ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+             {file ? <CheckCircle size={24} /> : <FileText size={24} />}
+          </div>
+          <div className="text-left flex-1">
+            <p className={`font-semibold ${file ? 'text-emerald-700' : 'text-gray-900 dark:text-white'}`}>{label}</p>
+            {file ? (
+              <p className="text-sm text-green-600 dark:text-green-400 truncate">{file.name}</p>
+            ) : (
+              <p className="text-xs text-gray-500 dark:text-gray-400">Prendre une photo ou importer un fichier PDF/Image.</p>
+            )}
+          </div>
         </div>
+
+        {!file ? (
+          <div className="flex w-full gap-2 mt-2">
+            <button type="button" onClick={(e) => { e.stopPropagation(); document.getElementById(`${idPrefix}-scan`).click(); }} className="flex-1 py-2 bg-slate-50 dark:bg-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-600 dark:text-slate-300 hover:text-emerald-600 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+              <Camera size={14} /> Scanner
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); document.getElementById(`${idPrefix}-upload`).click(); }} className="flex-1 py-2 bg-slate-50 dark:bg-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-600 dark:text-slate-300 hover:text-emerald-600 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+              <Upload size={14} /> Importer
+            </button>
+          </div>
+        ) : (
+          <div className="w-full text-right mt-1">
+            <button type="button" onClick={(e) => { e.stopPropagation(); onFileChange(null); }} className="text-[11px] text-red-500 hover:text-red-700 font-bold underline">Retirer le fichier</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -163,8 +194,8 @@ const ApplyForm = ({ editMode }) => {
     const errors = {};
     if (!editMode && !cinFileUpload.file) errors.cinFile = 'CIN copy is required';
     if (!editMode && !transcriptFileUpload.file) errors.transcriptFile = 'Transcript is required';
-    if (!editMode && form.values.paymentMethod === 'upload' && !feeReceiptFileUpload.file) {
-      errors.feeReceiptFile = 'Fee receipt is required';
+    if (!editMode && !residencyCertFileUpload.file) {
+      errors.residencyCertFile = 'Certificat de résidence is required';
     }
 
     setValidationErrors(errors);
@@ -202,9 +233,7 @@ const ApplyForm = ({ editMode }) => {
 
     if (cinFileUpload.file) formData.append('cin_copy', cinFileUpload.file);
     if (transcriptFileUpload.file) formData.append('transcript', transcriptFileUpload.file);
-    if (values.paymentMethod === 'upload' && feeReceiptFileUpload.file) {
-      formData.append('fee_receipt', feeReceiptFileUpload.file);
-    }
+
     if (residencyCertFileUpload.file) formData.append('residency_cert', residencyCertFileUpload.file);
 
     try {
@@ -217,15 +246,9 @@ const ApplyForm = ({ editMode }) => {
       toast.success(t('application_saved'));
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
-      const errorDetail = err.response?.data?.detail;
-      let errorMessage = 'Error submitting application';
-
-      if (typeof errorDetail === 'string') {
-        errorMessage = errorDetail;
-      } else if (Array.isArray(errorDetail)) {
-        errorMessage = errorDetail.map((d) => `${d.loc?.at(-1)}: ${d.msg}`).join(', ');
-      }
-
+      let errorMessage = err.response?.data?.detail;
+      if (Array.isArray(errorMessage)) errorMessage = errorMessage[0].msg;
+      errorMessage = errorMessage || 'Error submitting application';
       form.setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -288,7 +311,7 @@ const ApplyForm = ({ editMode }) => {
                       isCompleted
                         ? 'bg-green-600 text-white'
                         : isActive
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-emerald-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                   >
@@ -546,63 +569,28 @@ const ApplyForm = ({ editMode }) => {
                     </div>
                   </div>
 
-                  {/* Payment Section */}
-                  <div className="border-t pt-6">
+                  {/* Residency Cert Section */}
+                  <div className="border-t pt-6 mt-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold">{t('registration_fees')}</h3>
-                      <Badge variant="success">150 MAD</Badge>
+                      <h3 className="text-lg font-bold flex items-center gap-2">
+                        <FileText className="text-emerald-600" /> Certificat de résidence
+                      </h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <Button
-                        type="button"
-                        variant={form.values.paymentMethod === 'upload' ? 'primary' : 'outline'}
-                        onClick={() => form.setFieldValue('paymentMethod', 'upload')}
-                      >
-                        {t('transfer_receipt')}
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant={form.values.paymentMethod === 'online' ? 'primary' : 'outline'}
-                        onClick={() => form.setFieldValue('paymentMethod', 'online')}
-                      >
-                        {t('online_payment')}
-                      </Button>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Scan / Importation du Certificat
+                        {!editMode && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      <FileUploadField
+                        label="Certificat de résidence"
+                        file={residencyCertFileUpload.file}
+                        onFileChange={residencyCertFileUpload.handleFileChange}
+                      />
+                      {validationErrors.residencyCertFile && (
+                        <FormError error={validationErrors.residencyCertFile} />
+                      )}
                     </div>
-
-                    {form.values.paymentMethod === 'upload' ? (
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                          {t('fee_receipt_label')}
-                          {!editMode && <span className="text-red-500 ml-1">*</span>}
-                        </label>
-                        <FileUploadField
-                          label={t('fee_receipt_label')}
-                          file={feeReceiptFileUpload.file}
-                          onFileChange={feeReceiptFileUpload.handleFileChange}
-                        />
-                        {validationErrors.feeReceiptFile && (
-                          <FormError error={validationErrors.feeReceiptFile} />
-                        )}
-                      </div>
-                    ) : (
-                      <Card gradient className="p-4">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          {t('card_payment_info')}
-                        </p>
-                        <CardElement
-                          options={{
-                            style: {
-                              base: {
-                                fontSize: '16px',
-                                color: '#000',
-                              },
-                            },
-                          }}
-                        />
-                      </Card>
-                    )}
                   </div>
                 </div>
               </motion.div>

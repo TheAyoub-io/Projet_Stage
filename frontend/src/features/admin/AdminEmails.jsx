@@ -86,7 +86,7 @@ const AdminEmails = () => {
             </select>
           </div>
           {students.length > 0 && (
-            <button onClick={() => setSelected(selected.length === students.length ? [] : students.map(s => s.id))} className="text-xs font-bold text-blue-600 shrink-0">
+            <button onClick={() => setSelected(selected.length === students.length ? [] : students.map(s => s.id))} className="text-xs font-bold text-emerald-600 shrink-0">
               {selected.length === students.length ? 'Tout désélectionner' : 'Tout sélectionner'}
             </button>
           )}
@@ -101,8 +101,8 @@ const AdminEmails = () => {
             </div>
           ) : (
             students.map(s => (
-              <div key={s.id} onClick={() => toggleSelect(s.id)} className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${selected.includes(s.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}>
-                <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selected.includes(s.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300 dark:border-slate-600'}`}>
+              <div key={s.id} onClick={() => toggleSelect(s.id)} className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${selected.includes(s.id) ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}>
+                <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selected.includes(s.id) ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 dark:border-slate-600'}`}>
                   {selected.includes(s.id) && <CheckSquare size={14} className="text-white" />}
                 </div>
                 <div className="flex-1">

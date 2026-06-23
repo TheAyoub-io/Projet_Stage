@@ -12,6 +12,9 @@ const RoomManager = () => {
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, available, full
+    const [activeSection, setActiveSection] = useState('CPGE'); // CPGE, LYCEE
+    const [activeCpgeCategory, setActiveCpgeCategory] = useState('A'); // A, B, C, D
+    const [activeLyceeGender, setActiveLyceeGender] = useState('Male'); // Male, Female
     const [viewMode, setViewMode] = useState('grid'); // grid, list
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedRoom, setSelectedRoom] = useState(null);
@@ -90,7 +93,35 @@ const RoomManager = () => {
             filter === 'all' ||
             (filter === 'available' && room.occupants.length < room.capacity) ||
             (filter === 'full' && room.occupants.length >= room.capacity);
-        return matchesSearch && matchesFilter;
+            
+        let matchesSection = false;
+        if (activeSection === 'CPGE') {
+            matchesSection = room.student_section === 'CPGE' && room.category === activeCpgeCategory;
+        } else {
+            matchesSection = room.student_section === 'LYCEE' && room.gender_type === activeLyceeGender;
+        }
+
+        return matchesSearch && matchesFilter && matchesSection;
+    });
+
+    const filteredUnassigned = unassignedStudents.filter(s => {
+        if (!selectedRoom) return false;
+        const isAppCpge = (s.student_type || '').toUpperCase() === 'CPGE';
+        const appSection = isAppCpge ? 'CPGE' : 'LYCEE';
+        if (appSection !== selectedRoom.student_section) return false;
+        if (s.gender !== selectedRoom.gender_type) return false;
+        
+        if (isAppCpge) {
+            const isFirstYear = s.filiere && s.filiere.includes("1ère année");
+            const isSecondYear = s.filiere && s.filiere.includes("2ème année");
+            
+            if (selectedRoom.category === 'A' || selectedRoom.category === 'C') {
+                if (!isFirstYear) return false;
+            } else if (selectedRoom.category === 'B' || selectedRoom.category === 'D') {
+                if (!isSecondYear) return false;
+            }
+        }
+        return true;
     });
 
     const getStatusColor = (room) => {
@@ -100,7 +131,58 @@ const RoomManager = () => {
     };
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-6">
+            {/* Main Section Tabs */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-max shadow-inner">
+                <button 
+                    onClick={() => setActiveSection('CPGE')}
+                    className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeSection === 'CPGE' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    Classes Préparatoires (CPGE)
+                </button>
+                <button 
+                    onClick={() => setActiveSection('LYCEE')}
+                    className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeSection === 'LYCEE' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    Lycée Technique
+                </button>
+            </div>
+
+            {/* Sub-Filters */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                {activeSection === 'CPGE' ? (
+                    <div className="flex gap-2">
+                        {['A', 'B', 'C', 'D'].map(cat => {
+                            const isMale = cat === 'A' || cat === 'B';
+                            return (
+                                <button
+                                    key={cat}
+                                    onClick={() => setActiveCpgeCategory(cat)}
+                                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase transition-all ${activeCpgeCategory === cat ? (isMale ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30' : 'bg-pink-500 text-white shadow-md shadow-pink-500/30') : 'bg-white text-slate-500 border border-slate-200'}`}
+                                >
+                                    Catégorie {cat} ({isMale ? 'Hommes' : 'Femmes'} - {cat === 'A' || cat === 'C' ? '1ère' : '2ème'} année)
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setActiveLyceeGender('Male')}
+                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase transition-all ${activeLyceeGender === 'Male' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30' : 'bg-white text-slate-500 border border-slate-200'}`}
+                        >
+                            Pavillon Hommes
+                        </button>
+                        <button
+                            onClick={() => setActiveLyceeGender('Female')}
+                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase transition-all ${activeLyceeGender === 'Female' ? 'bg-pink-500 text-white shadow-md shadow-pink-500/30' : 'bg-white text-slate-500 border border-slate-200'}`}
+                        >
+                            Pavillon Femmes
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {/* Header Controls */}
             <div className="glass-panel p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex flex-1 items-center gap-3 w-full">
@@ -118,17 +200,17 @@ const RoomManager = () => {
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${filter === f ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${filter === f ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-500'}`}
                             >
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
+                                {f === 'all' ? 'Toutes' : f === 'available' ? 'Disponibles' : 'Pleines'}
                             </button>
                         ))}
                     </div>
                 </div>
 
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
-                    <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400'}`}><List size={18} /></button>
+                    <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
+                    <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}><List size={18} /></button>
                 </div>
             </div>
 
@@ -145,14 +227,14 @@ const RoomManager = () => {
                                 key={room.id}
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="glass-panel p-6 cursor-pointer group hover:border-blue-500/50 relative overflow-hidden"
+                                className="glass-panel p-6 cursor-pointer group hover:border-emerald-500/50 relative overflow-hidden"
                                 onClick={() => setSelectedRoom(room)}
                             >
                                 <div className={`absolute top-0 right-0 w-1.5 h-full ${getStatusColor(room).split(' ')[1]}`}></div>
 
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
                                             <Home size={20} />
                                         </div>
                                         <div>
@@ -160,7 +242,7 @@ const RoomManager = () => {
                                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{room.gender_type}</p>
                                         </div>
                                     </div>
-                                    <div className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                                    <div className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
                                         {room.occupants.length}/{room.capacity}
                                     </div>
                                 </div>
@@ -206,7 +288,7 @@ const RoomManager = () => {
                                 </div>
                                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
                                     <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Occupation</p>
-                                    <p className="text-xl font-black text-blue-600">{Math.round(selectedRoom.occupancy_rate)}%</p>
+                                    <p className="text-xl font-black text-emerald-600">{Math.round(selectedRoom.occupancy_rate)}%</p>
                                 </div>
                             </div>
 
@@ -220,7 +302,7 @@ const RoomManager = () => {
                                     selectedRoom.occupants.map(occ => (
                                         <div key={occ.id} className="glass-panel p-4 flex justify-between items-center group">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black">{(occ.student_name || '?').charAt(0).toUpperCase()}</div>
+                                                <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black">{(occ.student_name || '?').charAt(0).toUpperCase()}</div>
                                                 <div>
                                                     <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">{occ.student_name}</p>
                                                     <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{occ.filiere}</p>
@@ -232,44 +314,13 @@ const RoomManager = () => {
                                 )}
                             </div>
 
-                            {selectedRoom.occupants.length < selectedRoom.capacity && (
-                                <button onClick={() => { fetchUnassigned(); setShowAssignModal(true); }} className="btn btn-primary w-full py-4 text-sm font-black shadow-blue-500/20">
-                                    <UserPlus size={20} className="mr-2" /> Affecter Étudiant
-                                </button>
-                            )}
+
                         </motion.div>
                     </>
                 )}
             </AnimatePresence>
 
-            {/* Assign Modal */}
-            <AnimatePresence>
-                {showAssignModal && (
-                    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                                <h3 className="font-black text-xl">Choisir un Étudiant</h3>
-                                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} /></button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {unassignedStudents.length === 0 ? (
-                                    <p className="text-center py-10 text-slate-400 font-bold">Aucun étudiant en attente d'affectation.</p>
-                                ) : (
-                                    unassignedStudents.map(s => (
-                                        <div key={s.id} className="p-4 rounded-2xl border border-slate-50 hover:border-blue-200 transition-colors flex justify-between items-center">
-                                            <div>
-                                                <p className="font-bold text-slate-900 leading-none mb-1">{s.student_name}</p>
-                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{s.filiere}</p>
-                                            </div>
-                                            <button onClick={() => handleAssignStudent(selectedRoom.id, s.id)} className="btn btn-primary py-2 px-6 text-xs font-black shadow-none">Affecter</button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+
         </div>
     );
 };

@@ -80,7 +80,7 @@ const EnhancedChatWindow = ({ applicationId, className = '' }) => {
         onClick={() => setIsOpen(!isOpen)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow z-40"
+        className="w-14 h-14 rounded-full bg-gradient-to-r from-emerald-600 to-indigo-600 text-white shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow z-40"
         aria-label="Open chat"
       >
         <svg
@@ -103,7 +103,7 @@ const EnhancedChatWindow = ({ applicationId, className = '' }) => {
             className="absolute bottom-20 right-0 w-96 max-w-[90vw] h-[500px] bg-white dark:bg-gray-800 rounded-xl shadow-2xl flex flex-col overflow-hidden z-40 border border-gray-200 dark:border-gray-700"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-emerald-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg">{t('support_chat')}</h3>
                 <p className="text-sm opacity-90">{t('we_are_here_to_help')}</p>
@@ -154,7 +154,7 @@ const EnhancedChatWindow = ({ applicationId, className = '' }) => {
                         className={`max-w-xs px-4 py-2 rounded-lg ${
                           msg.sender === 'admin'
                             ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                            : 'bg-blue-600 text-white'
+                            : 'bg-emerald-600 text-white'
                         }`}
                       >
                         <p className="text-sm">{msg.message || msg.content}</p>
@@ -190,7 +190,7 @@ const EnhancedChatWindow = ({ applicationId, className = '' }) => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder={t('type_message')}
-                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   disabled={sending}
                   aria-label="Message input"
                 />

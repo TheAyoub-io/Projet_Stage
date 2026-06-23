@@ -137,7 +137,7 @@ const ApplicationsList = ({ applicationId, onEdit, onDelete }) => {
       {loading ? (
         <div className="text-center py-8">
           <div className="inline-block animate-spin">
-            <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full" />
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-emerald-600 rounded-full" />
           </div>
         </div>
       ) : applications.length === 0 ? (
@@ -213,10 +213,10 @@ const ApplicationsList = ({ applicationId, onEdit, onDelete }) => {
                           setSelectedApp(app);
                           setShowModal(true);
                         }}
-                        className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
+                        className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded transition-colors"
                         title={t('view')}
                       >
-                        <Eye size={18} className="text-blue-600" />
+                        <Eye size={18} className="text-emerald-600" />
                       </button>
                       <button
                         onClick={() => onEdit(app.id)}

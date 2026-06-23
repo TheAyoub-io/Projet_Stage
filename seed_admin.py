@@ -16,7 +16,7 @@ from app.models.models import User, UserRole
 from app.auth.security import get_password_hash
 
 # ── Configure your admin credentials here ──────────────────────────────────
-ADMIN_EMAIL    = "tarik_el@gmail.com"
+ADMIN_EMAIL    = "tarikkhalfaoui4@gmail.com"
 ADMIN_PASSWORD = "spark_sql"
 # ───────────────────────────────────────────────────────────────────────────
 

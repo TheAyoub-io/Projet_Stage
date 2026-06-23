@@ -111,7 +111,7 @@ const IntegratedDocumentViewer = ({ isOpen, onClose, documents, initialIndex = 0
                                 />
                             ) : (
                                 <div className="bg-white p-12 rounded-3xl text-center max-w-sm">
-                                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                                         <FileText size={40} />
                                     </div>
                                     <h4 className="text-slate-900 font-bold text-lg mb-2">Format non supporté</h4>

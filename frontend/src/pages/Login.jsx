@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
-import api from '../lib/axios';
+import { Eye, EyeOff } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import logoImg from '../assets/official_logo.png';
 import FormError from '../components/FormError';
-import { motion } from 'framer-motion';
 import { useLogin } from '../hooks/useAuth';
 
 function parseJwt(token) {
@@ -45,115 +45,128 @@ const Login = () => {
   const handleLogin = (e) => {
     e.preventDefault();
     setError('');
-
     login({ email, password }, {
       onSuccess: (data) => {
         const token = data.access_token;
         localStorage.setItem('token', token);
-        toast.success(t("success_login") || "Connexion réussie !");
-
+        toast.success(t('success_login') || 'Connexion réussie !');
         const payload = parseJwt(token);
         if (payload?.role === 'admin') navigate('/admin');
         else navigate('/dashboard');
       },
       onError: (err) => {
-        const errMsg = err.response?.data?.detail || t("error_login") || "Échec de la connexion";
+        let detail = err.response?.data?.detail;
+        if (Array.isArray(detail)) detail = detail[0].msg;
+        const errMsg = detail || t('error_login') || 'Échec de la connexion';
         setError(errMsg);
       }
     });
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background orbs */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none mix-blend-multiply dark:mix-blend-lighten" />
+    <div className="flex-1 flex w-full relative overflow-hidden bg-slate-50 min-h-[calc(100vh-64px)]">
+      {/* Decorative background blobs */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/20 mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+        <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-400/20 mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-[-20%] left-[20%] w-[40%] h-[40%] rounded-full bg-sky-400/20 mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md relative z-10"
-      >
-        <div className="bento-card p-8 md:p-12">
-
-          <div className="text-center mb-10 relative z-10">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', delay: 0.2 }}
-              className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-2xl mx-auto mb-6 flex items-center justify-center"
-            >
-              <Lock size={32} className="text-blue-600 dark:text-blue-400" />
-            </motion.div>
-            <h2 className="text-4xl font-black mb-3">{t("login")}</h2>
-            <p className="text-slate-500 dark:text-slate-400 font-medium">
-              {t("no_account_yet") || "Pas encore de compte ?"} <Link to="/register" className="text-blue-600 font-bold hover:text-blue-700 underline decoration-2 underline-offset-4 transition-colors">{t("create_account")}</Link>
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-6 relative z-10">
-            <FormError error={error} />
-
-            <div className="form-group">
-              <label className="form-label">{t("email")}</label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                <input
-                  type="email"
-                  required
-                  className="form-input pl-12 shadow-inner"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 z-10 w-full">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="w-full max-w-[480px] flex rounded-3xl overflow-hidden shadow-2xl bg-white border border-slate-100"
+        >
+          {/* Right Side - Form */}
+          <div className="w-full p-8 sm:p-12 flex flex-col justify-center bg-white">
+            <div className="max-w-md w-full mx-auto">
+              <div className="flex flex-col items-center text-center mb-8">
+                <img src={logoImg} alt="Logo" className="h-12 w-auto mb-4" />
+                <h2 className="text-2xl font-extrabold text-slate-900">
+                  {t('login_to_einternat') || 'Connexion à e-Internat'}
+                </h2>
               </div>
-            </div>
 
-            <div className="form-group">
-              <div className="flex justify-between items-center mb-2">
-                <label className="form-label mb-0">{t("password")}</label>
-                <Link to="/forgot-password" size="sm" className="text-xs text-blue-600 font-bold hover:underline underline-offset-2">
-                  {t("forgot_password")}
-                </Link>
-              </div>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  className="form-input pl-12 pr-12 shadow-inner"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                />
+              <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+                <FormError error={error} />
+
+                {/* Email */}
+                <div className="form-group mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('username') || "Nom d'utilisateur"}</label>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="off"
+                    className="form-input transition-all duration-300"
+                    placeholder={t('email_placeholder') || "votre@email.com"}
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="form-group mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="new-password"
+                      className="form-input transition-all duration-300"
+                      placeholder="••••••••"
+                      style={{ paddingRight: '3rem' }}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mb-6">
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Mot de passe oublié ?
+                  </Link>
+                </div>
+
+                {/* Submit */}
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {t('loading')}...
+                    </span>
+                  ) : (
+                    t('connect') || 'Se connecter'
+                  )}
                 </button>
-              </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full py-4 text-base mt-4 group"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  {t("loading")}...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  {t("connect")}
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                </span>
-              )}
-            </button>
-          </form>
-        </div>
-      </motion.div>
+                {/* Register link */}
+                <p className="text-center mt-6 text-sm text-slate-500">
+                  Pas encore de compte ?{' '}
+                  <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                    S'inscrire
+                  </Link>
+                </p>
+              </form>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

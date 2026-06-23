@@ -108,7 +108,7 @@ def admin_token(client, db_session):
 def room(db_session):
     """Create a room with capacity to allow approvals."""
     from app.models.models import Room
-    room = Room(room_number="Test Room 101", capacity=10, gender_type="Male")
+    room = Room(room_number="Test Room 101", capacity=10, gender_type="Male", student_section="CPGE", category="A")
     db_session.add(room)
     db_session.commit()
     return room

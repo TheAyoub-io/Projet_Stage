@@ -24,6 +24,12 @@ class DocumentType(str, enum.Enum):
     TRANSCRIPT = "transcript"
     RESIDENCY_CERT = "residency_cert"
 
+class TicketStatus(str, enum.Enum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -82,3 +88,29 @@ class Document(Base):
     file_url = Column(Text, nullable=False)
 
     application = relationship("Application", back_populates="documents")
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    subject = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(Enum(TicketStatus), nullable=False, default=TicketStatus.OPEN)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", backref="tickets")
+    messages = relationship("TicketMessage", back_populates="ticket", cascade="all, delete-orphan")
+
+class TicketMessage(Base):
+    __tablename__ = "ticket_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    ticket = relationship("Ticket", back_populates="messages")
+    sender = relationship("User", backref="sent_messages")

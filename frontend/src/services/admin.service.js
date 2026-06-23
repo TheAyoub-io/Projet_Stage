@@ -33,6 +33,11 @@ const adminService = {
     }
     const response = await api.patch(`/admin/applications/${id}/status`, payload);
     return response.data;
+  },
+
+  deleteApplication: async (id) => {
+    const response = await api.delete(`/admin/applications/${id}`);
+    return response.data;
   }
 };
 

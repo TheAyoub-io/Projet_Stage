@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
-import logoImg from '../assets/logo.svg';
+import logoImg from '../assets/official_logo.png';
 import { AnimatePresence, motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
@@ -45,146 +45,262 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { name: t('home'), path: '/', show: !token },
     { name: t('student_space'), path: '/dashboard', show: token && role !== 'admin', icon: LayoutDashboard },
     { name: t('admin'), path: '/admin', show: token && role === 'admin', icon: LayoutDashboard },
   ];
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center px-4 pt-4 sm:pt-6 pointer-events-none transition-all">
-      <nav className="pointer-events-auto w-full max-w-6xl rounded-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/50 dark:border-slate-700/50 shadow-[0_8px_32px_rgba(37,99,235,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 relative">
-        {/* Subtle top glare effect */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent rounded-t-2xl" />
-
-        <div className="px-5 sm:px-6 h-16 flex justify-between items-center relative z-10">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        background: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
+        boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 1.5rem',
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Left side: Hamburger (Admin) + Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {location.pathname === '/admin' && (
+            <button 
+              onClick={() => window.dispatchEvent(new Event('toggleAdminSidebar'))}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '40px', height: '40px', borderRadius: '12px',
+                border: '1px solid #e2e8f0', background: 'white',
+                cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              title="Ouvrir le menu"
+            >
+              <Menu size={20} color="#334155" />
+            </button>
+          )}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             <img
               src={logoImg}
-              alt="Internat Mohamed V"
-              className="h-10 w-auto object-contain transition-transform duration-300 ease-out group-hover:scale-105"
+              alt="e-Internat"
+              style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
             />
+            <span style={{ fontWeight: '700', fontSize: '1rem', color: '#1e293b', letterSpacing: '-0.01em' }}>
+              e - Internat
+            </span>
           </Link>
+        </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden lg:flex items-center gap-4 lg:gap-6">
-            <div className="flex gap-1.5 p-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/50 dark:border-slate-700/50">
+        {/* Desktop right side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="hidden lg:flex">
+          {/* Nav links */}
+          {navLinks.filter(l => l.show).map(link => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '0.875rem',
+                  fontWeight: isActive ? '700' : '500',
+                  color: isActive ? '#059669' : '#64748b',
+                  background: isActive ? '#ecfdf5' : 'transparent',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {link.icon && <link.icon size={16} />}
+                {link.name}
+              </Link>
+            );
+          })}
+
+          {/* Divider */}
+          <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 4px' }} />
+
+          {/* Language switcher */}
+          <LanguageSwitcher />
+
+          {/* Theme toggle */}
+          <ThemeToggle />
+
+          {/* Notification bell */}
+          {token && <NotificationBell />}
+
+          {/* Auth buttons */}
+          {token ? (
+            role !== 'admin' && (
+              <button
+                onClick={handleLogout}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: '1.5px solid #fecaca',
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                }}
+              >
+                <LogOut size={15} />
+                {t('logout')}
+              </button>
+            )
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link
+                to="/login"
+                style={{
+                  padding: '7px 18px',
+                  borderRadius: '20px',
+                  border: '1.5px solid #e2e8f0',
+                  background: 'transparent',
+                  color: '#64748b',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {t('login')}
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  padding: '7px 18px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: '#059669',
+                  color: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {t('register')}
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Toggle */}
+        <button
+          className="lg:hidden"
+          style={{
+            padding: '8px',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'transparent',
+            color: '#64748b',
+            cursor: 'pointer',
+          }}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle Menu"
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            style={{
+              borderTop: '1px solid #e2e8f0',
+              background: '#ffffff',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {navLinks.filter(l => l.show).map(link => {
                 const isActive = location.pathname === link.path;
                 return (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className="relative flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300"
                     style={{
-                      color: isActive ? 'white' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      fontWeight: '600',
+                      color: isActive ? '#059669' : '#1e293b',
+                      background: isActive ? '#ecfdf5' : 'transparent',
+                      textDecoration: 'none',
                     }}
                   >
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav_active_pill"
-                        className="absolute inset-0 bg-blue-600 rounded-full -z-10 shadow-lg shadow-blue-600/30"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                    {link.icon && <link.icon size={16} className={isActive ? "text-white/90" : "text-blue-600 dark:text-blue-400"} />}
+                    {link.icon && <link.icon size={18} />}
                     {link.name}
                   </Link>
                 );
               })}
-            </div>
 
-            <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-700/50 mx-1" />
-
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher />
-              <ThemeToggle />
-              {token && <NotificationBell />}
-
-              {token ? (
-                <button
-                  onClick={handleLogout}
-                  className="btn btn-sm text-sm font-bold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-200/50 dark:border-red-800/30"
-                >
-                  <LogOut size={15} className="mr-1.5" />
-                  {t('logout')}
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Link to="/login" className="btn btn-sm btn-ghost font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-                    {t('login')}
-                  </Link>
-                  <Link to="/register" className="btn btn-sm btn-primary">
-                    {t('register')}
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile Toggle */}
-          <button
-            className="lg:hidden p-2 rounded-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-            style={{ color: 'var(--text-muted)' }}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle Menu"
-          >
-            <motion.div animate={{ rotate: isMenuOpen ? 180 : 0 }}>
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </motion.div>
-          </button>
-        </div>
-
-        {/* Mobile Menu Dropdown */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="lg:hidden border-t border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-3xl"
-            >
-              <div className="px-6 py-6 flex flex-col gap-4">
-                {navLinks.filter(l => l.show).map(link => {
-                  const isActive = location.pathname === link.path;
-                  return (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      className="text-base font-bold flex items-center gap-3 py-2 px-4 rounded-xl transition-colors"
-                      style={{
-                        color: isActive ? 'var(--primary)' : 'var(--text-main)',
-                        background: isActive ? 'var(--primary-light)' : 'transparent'
-                      }}
-                    >
-                      {link.icon && <link.icon size={20} className={isActive ? "" : "text-blue-500"} />}
-                      {link.name}
-                    </Link>
-                  );
-                })}
-                <div className="w-full h-[1px] bg-slate-200/50 dark:bg-slate-700/50 my-2" />
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-4">
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <LanguageSwitcher />
                     <ThemeToggle />
                   </div>
                   {token ? (
-                    <button onClick={handleLogout} className="text-red-500 font-bold flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-xl">
-                      <LogOut size={18} /> {t('logout')}
-                    </button>
+                    role !== 'admin' && (
+                      <button
+                        onClick={handleLogout}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          border: 'none',
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          fontWeight: '600',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <LogOut size={16} /> {t('logout')}
+                      </button>
+                    )
                   ) : (
-                    <div className="flex gap-3 w-full max-w-[200px]">
-                      <Link to="/login" className="btn btn-sm btn-outline flex-1">{t('login')}</Link>
-                      <Link to="/register" className="btn btn-sm btn-primary flex-1">{t('register')}</Link>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <Link to="/login" style={{ padding: '8px 16px', borderRadius: '20px', border: '1.5px solid #e2e8f0', color: '#64748b', fontSize: '0.875rem', fontWeight: '600', textDecoration: 'none' }}>{t('login')}</Link>
+                      <Link to="/register" style={{ padding: '8px 16px', borderRadius: '20px', background: '#059669', color: 'white', fontSize: '0.875rem', fontWeight: '600', textDecoration: 'none' }}>{t('register')}</Link>
                     </div>
                   )}
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

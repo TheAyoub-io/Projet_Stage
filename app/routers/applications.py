@@ -56,6 +56,7 @@ async def submit_application(
     address: str = Form(...),
     city: str = Form(...),
     province: str = Form(...),
+    gender: str = Form(...),
     student_type: StudentType = Form(...),
     filière: str = Form(...),
     grade_average: Decimal = Form(...),
@@ -86,11 +87,7 @@ async def submit_application(
     # 3. Create or update profile
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if not profile:
-        # Also need to check if CIN is used by someone else
-        cin_exists = db.query(Profile).filter(Profile.cin == cin).first()
-        if cin_exists:
-            raise HTTPException(status_code=400, detail="CIN already in use")
-            
+
         profile = Profile(
             user_id=current_user.id,
             full_name=full_name,
@@ -99,7 +96,8 @@ async def submit_application(
             date_of_birth=date_of_birth,
             address=address,
             city=city,
-            province=province
+            province=province,
+            gender=gender
         )
         db.add(profile)
     else:
@@ -109,6 +107,7 @@ async def submit_application(
         profile.address = address
         profile.city = city
         profile.province = province
+        profile.gender = gender
         
     db.commit() # commit profile first
     db.refresh(profile)
@@ -245,6 +244,7 @@ async def update_application(
     address: str = Form(...),
     city: str = Form(...),
     province: str = Form(...),
+    gender: str = Form(...),
     student_type: StudentType = Form(...),
     filière: str = Form(...),
     grade_average: Decimal = Form(...),
@@ -286,18 +286,15 @@ async def update_application(
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found.")
         
-    # Check CIN uniqueness if changed
-    if profile.cin != cin:
-        cin_exists = db.query(Profile).filter(Profile.cin == cin).first()
-        if cin_exists:
-            raise HTTPException(status_code=400, detail="CIN already in use")
-            
+
     profile.full_name = full_name
     profile.cin = cin
     profile.phone = phone
     profile.date_of_birth = date_of_birth
     profile.address = address
     profile.city = city
+    profile.province = province
+    profile.gender = gender
     profile.province = province
     
     # 4. Update Application
@@ -460,3 +457,32 @@ def send_chat_message(
         "message": msg.message,
         "created_at": msg.created_at
     }
+
+@router.post("/upload-receipt", response_model=ApplicationResponse)
+async def upload_receipt(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    application = db.query(Application).filter(Application.user_id == current_user.id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+        
+    save_document(file, application.id, DocumentType.FEE_RECEIPT, db)
+    
+    application.status = ApplicationStatus.PENDING
+    application.admin_feedback = "Reçu d'inscription soumis, en attente de vérification."
+    db.commit()
+    db.refresh(application)
+    
+    db.add(StatusHistory(
+        application_id=application.id,
+        status=ApplicationStatus.PENDING,
+        comment="L'étudiant a soumis son reçu d'inscription."
+    ))
+    db.commit()
+    
+    record_audit_log(db, current_user.id, "UPLOAD_RECEIPT", "applications", f"Application ID: {application.id}")
+    
+    return application
+

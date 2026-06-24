@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, CheckCircle, XCircle, Clock, User, DoorOpen, ArrowRight, AlertCircle, Edit3, Download, MessageCircle, Phone, MapPin, GraduationCap, LayoutDashboard, MessageSquareWarning, Upload, Camera, Home } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Clock, User, DoorOpen, ArrowRight, AlertCircle, Edit3, Download, MessageCircle, Phone, MapPin, GraduationCap, LayoutDashboard, MessageSquareWarning, Upload, Camera, Home, Sparkles, Receipt, Contact } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import html2pdf from 'html2pdf.js';
 
 import { useTranslation } from 'react-i18next';
 import Skeleton from '../components/ui/Skeleton';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import StudentReclamations from '../components/student/StudentReclamations';
+import VisualRoomMap from '../components/student/VisualRoomMap';
 
 import { useMyStatus, useUpdateProfile } from '../hooks/useApplications';
 import { useCreateCheckoutSession } from '../hooks/usePayment';
@@ -36,7 +37,6 @@ const Dashboard = () => {
       });
       toast.success("Reçu soumis avec succès !");
       setReceiptFile(null);
-      // Reload page or re-fetch data
       window.location.reload();
     } catch (err) {
       toast.error("Erreur lors de l'envoi du reçu");
@@ -67,7 +67,6 @@ const Dashboard = () => {
     };
 
     try {
-      // Handle Vite default import potential issue
       const generatePdf = typeof html2pdf === 'function' ? html2pdf : html2pdf.default;
       
       generatePdf().set(opt).from(element).save()
@@ -85,7 +84,7 @@ const Dashboard = () => {
   };
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
       <div className="alert alert-danger max-w-md w-full shadow-lg">Échec du chargement.</div>
     </div>
   );
@@ -94,18 +93,18 @@ const Dashboard = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      approved: { bg: 'bg-green-100', color: 'text-green-600', label: t('approved'), icon: CheckCircle },
-      rejected: { bg: 'bg-red-100', color: 'text-red-600', label: t('rejected'), icon: XCircle },
-      incomplete: { bg: 'bg-pink-100', color: 'text-pink-600', label: t('incomplete'), icon: AlertCircle },
-      waitlisted: { bg: 'bg-indigo-100', color: 'text-indigo-600', label: t('waitlisted'), icon: Clock },
-      pending: { bg: 'bg-orange-100', color: 'text-orange-600', label: t('pending'), icon: Clock },
-      awaiting_receipt: { bg: 'bg-purple-100', color: 'text-purple-600', label: 'Reçu Demandé', icon: AlertCircle },
+      approved: { bg: 'badge-success', label: t('approved'), icon: CheckCircle },
+      rejected: { bg: 'badge-danger', label: t('rejected'), icon: XCircle },
+      incomplete: { bg: 'badge-pink', label: t('incomplete'), icon: AlertCircle },
+      waitlisted: { bg: 'badge-warning', label: t('waitlisted'), icon: Clock },
+      pending: { bg: 'badge-warning', label: t('pending'), icon: Clock },
+      awaiting_receipt: { bg: 'badge-info', label: 'Reçu Demandé', icon: AlertCircle },
     };
     const s = styles[status] || styles.pending;
     const Icon = s.icon;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${s.bg} ${s.color} text-xs font-bold uppercase tracking-wider`}>
-        <Icon size={14} /> {s.label}
+      <span className={`badge ${s.bg}`}>
+        <Icon size={12} className="shrink-0" /> {s.label}
       </span>
     );
   };
@@ -119,7 +118,7 @@ const Dashboard = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
   };
 
   const itemVariants = {
@@ -128,35 +127,54 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-24 pb-12 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300">
+      {/* Dynamic ambient blurs */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[40%] rounded-full bg-emerald-400/10 dark:bg-emerald-400/5 mix-blend-multiply filter blur-[100px] opacity-75 animate-blob"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[40%] rounded-full bg-indigo-400/10 dark:bg-indigo-400/5 mix-blend-multiply filter blur-[100px] opacity-75 animate-blob animation-delay-2000"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
         
-        {/* Header */}
+        {/* Banner Welcome Block */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col items-center text-center mb-12 relative"
+          transition={{ duration: 0.6 }}
+          className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 to-slate-950 p-8 md:p-12 mb-8 shadow-2xl border border-white/5"
         >
-          {/* Decorative blur */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-400/20 blur-3xl rounded-full pointer-events-none" />
+          {/* Animated color mesh background */}
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/25 to-teal-500/0 rounded-full blur-3xl pointer-events-none animate-pulse" />
           
-          <h1 className="flex items-center justify-center gap-4 text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3 relative z-10">
-            <div className="p-3 bg-white rounded-2xl text-emerald-600 shadow-md border border-slate-100">
-              <GraduationCap size={32} />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                <Sparkles size={12} className="animate-spin" style={{ animationDuration: '4s' }} /> {t('session_open') || "Session Ouverte"}
+              </span>
+              <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tight">
+                {t('dashboard_title') || "Tableau de Bord"}
+              </h1>
+              <p className="text-sm md:text-base text-slate-350 max-w-xl leading-relaxed">
+                {t('welcome') || "Bienvenue"}, <strong className="text-white font-extrabold">{loading ? '...' : (profile?.full_name || 'Étudiant')}</strong>. {t('dashboard_subtitle') || "Consultez l'évolution de votre dossier et accédez aux services de l'internat."}
+              </p>
             </div>
-            {t('dashboard_title')}
-          </h1>
-          <p className="text-lg text-slate-500 relative z-10">
-            {t('welcome')}, <strong className="text-slate-900">{loading ? '...' : (profile?.full_name || 'Étudiant')}</strong>
-          </p>
-
-
+            
+            {application && (
+              <div className="flex-shrink-0 bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 text-center min-w-[200px]">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Statut actuel</p>
+                <div className="mt-2">{getStatusBadge(application.status)}</div>
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {loading ? (
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-            <Skeleton className="h-24 w-full" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="h-32 w-full rounded-3xl" />
+              <Skeleton className="h-96 w-full rounded-3xl" />
+            </div>
+            <Skeleton className="h-96 w-full rounded-3xl" />
           </div>
         ) : (
           <motion.div 
@@ -165,33 +183,32 @@ const Dashboard = () => {
             animate="show"
             className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start"
           >
-
-            {/* Left Column (Main Content) */}
+            {/* Left Column (Main Content Bento Grid) */}
             <div className="lg:col-span-2 flex flex-col gap-6">
 
-              {/* Progress Tracker */}
+              {/* Progress Tracker Card */}
               {application && (
-                <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-                    <Clock size={18} className="text-emerald-600" />
-                    <h3 className="font-bold text-slate-900">{t('tracking_title')}</h3>
+                <motion.div variants={itemVariants} className="card glow-card">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Clock size={18} className="text-emerald-500" />
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Suivi de Candidature</h3>
                   </div>
-                  <div className="p-6 sm:px-8 py-8 flex justify-between items-start relative">
+                  <div className="flex justify-between items-start relative px-2 sm:px-6">
                     {/* Background line for timeline */}
-                    <div className="absolute top-12 left-10 right-10 h-1 bg-slate-100 -z-0 rounded-full hidden sm:block" />
+                    <div className="absolute top-5 left-10 right-10 h-1 bg-slate-100 dark:bg-slate-800 -z-0 rounded-full hidden sm:block" />
                     
                     {steps.map((step) => (
                       <div key={step.id} className="flex flex-col items-center text-center flex-1 z-10">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all duration-300
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500
                           ${step.completed 
-                            ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30' 
+                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                             : step.active 
-                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-emerald-50' 
-                              : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-emerald-500/10' 
+                              : 'bg-slate-100 dark:bg-slate-850 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600'}`}
                         >
-                          {step.completed ? <CheckCircle size={20} /> : step.id}
+                          {step.completed ? <CheckCircle size={18} /> : step.id}
                         </div>
-                        <span className={`mt-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider ${step.completed || step.active ? 'text-slate-800' : 'text-slate-400'}`}>
+                        <span className={`mt-3 text-[9px] font-black uppercase tracking-wider ${step.completed || step.active ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-600'}`}>
                           {step.label}
                         </span>
                       </div>
@@ -200,282 +217,282 @@ const Dashboard = () => {
                 </motion.div>
               )}
 
-              {/* Application Details */}
-              <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              {/* Application Details Card */}
+              <motion.div variants={itemVariants} className="card glow-card">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-4 mb-6">
                   <div className="flex items-center gap-2">
-                    <FileText size={18} className="text-emerald-600" />
-                    <h3 className="font-bold text-slate-900">{t('application_details')}</h3>
+                    <FileText size={18} className="text-emerald-500" />
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{t('application_details') || "Dossier de Candidature"}</h3>
                   </div>
                   {application && getStatusBadge(application.status)}
                 </div>
-                <div className="p-6 sm:p-8">
-                  {!application ? (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FileText size={32} />
-                      </div>
-                      <p className="text-slate-500 mb-6">{message || t('no_application_submitted') || 'Aucune candidature soumise.'}</p>
-                      <Link to="/apply" className="btn btn-primary px-8 py-3 rounded-xl inline-flex font-bold">
-                        {t('submit_application') || 'Soumettre ma Candidature'}
-                      </Link>
+                
+                {!application ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
+                      <FileText size={32} />
                     </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {application.status === 'incomplete' && (
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-4 bg-pink-50 border border-pink-100 rounded-2xl border-l-4 border-l-pink-500">
-                          <p className="font-bold text-pink-700 flex items-center gap-2 mb-1">
-                            <AlertCircle size={18} /> {t('action_required') || 'Action Requise'}
-                          </p>
-                          <p className="text-slate-600 text-sm">"{application.admin_feedback}"</p>
-                        </motion.div>
-                      )}
-
-                      {application.status === 'awaiting_receipt' && (
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 bg-purple-50 border border-purple-100 rounded-2xl border-l-4 border-l-purple-500">
-                          <p className="font-bold text-purple-700 flex items-center gap-2 mb-3 text-lg">
-                            <AlertCircle size={22} /> Action Requise : Reçu d'inscription
-                          </p>
-                          <p className="text-slate-700 text-sm mb-4">
-                            Votre demande a été analysée. Veuillez maintenant importer ou scanner votre reçu d'inscription (150 MAD) pour finaliser votre admission.
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                            <div className="relative flex-1">
-                              <input 
-                                type="file" 
-                                accept="image/*"
-                                capture="environment"
-                                onChange={(e) => setReceiptFile(e.target.files[0])}
-                                className="hidden" 
-                                id="receipt-scan" 
-                              />
-                              <input 
-                                type="file" 
-                                accept="image/*,.pdf" 
-                                onChange={(e) => setReceiptFile(e.target.files[0])}
-                                className="hidden" 
-                                id="receipt-upload" 
-                              />
-                              {receiptFile ? (
-                                <div className="flex items-center justify-between w-full py-3 px-4 border-2 border-dashed border-purple-300 rounded-xl bg-purple-50 text-purple-700 font-bold">
-                                  <div className="flex items-center gap-2 truncate">
-                                    <CheckCircle size={18} className="shrink-0" />
-                                    <span className="truncate">{receiptFile.name}</span>
-                                  </div>
-                                  <button type="button" onClick={() => setReceiptFile(null)} className="ml-2 text-red-500 hover:text-red-700 transition-colors">
-                                    <XCircle size={18} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex gap-3 w-full">
-                                  <label 
-                                    htmlFor="receipt-scan"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-purple-300 rounded-xl bg-white text-purple-700 font-bold cursor-pointer hover:bg-purple-50 transition-colors m-0"
-                                  >
-                                    <Camera size={18} /> Scanner
-                                  </label>
-                                  <label 
-                                    htmlFor="receipt-upload" 
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-purple-300 rounded-xl bg-white text-purple-700 font-bold cursor-pointer hover:bg-purple-50 transition-colors m-0"
-                                  >
-                                    <Upload size={18} /> Importer
-                                  </label>
-                                </div>
-                              )}
-                            </div>
-                            <button 
-                              onClick={handleUploadReceipt}
-                              disabled={!receiptFile || uploadingReceipt}
-                              className="w-full sm:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white rounded-xl font-bold transition-colors shadow-md flex justify-center"
-                            >
-                              {uploadingReceipt ? <Skeleton className="w-16 h-4 bg-white/20" /> : 'Envoyer'}
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-4">
-                        {application.room && (
-                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="col-span-2 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl">
-                            <div className="flex items-center gap-3 mb-4">
-                              <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                                <Home size={20} />
-                              </div>
-                              <div>
-                                <h4 className="font-black text-indigo-900 text-lg">Votre Chambre</h4>
-                                <p className="text-sm font-medium text-indigo-600/80">Affectation validée</p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-white/60 p-4 rounded-xl border border-white">
-                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Numéro de chambre</p>
-                                <p className="font-black text-indigo-950 text-2xl">{application.room.room_number}</p>
-                              </div>
-                              <div className="bg-white/60 p-4 rounded-xl border border-white">
-                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Pavillon / Catégorie</p>
-                                <p className="font-black text-indigo-950 text-xl">{application.room.category ? `Catégorie ${application.room.category}` : (application.room.gender_type === 'Male' ? 'Pavillon Hommes' : 'Pavillon Femmes')}</p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('student_type_label') || "Type"}</p>
-                          <p className="font-bold text-lg text-slate-900">{application.student_type}</p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6 font-medium">{message || t('no_application_submitted') || 'Aucune candidature soumise.'}</p>
+                    <Link to="/apply" className="btn btn-primary px-8 py-3 rounded-xl inline-flex font-bold">
+                      {t('submit_application') || 'Soumettre ma Candidature'}
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {application.status === 'incomplete' && (
+                      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="alert alert-warning">
+                        <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-black mb-0.5">{t('action_required') || 'Action Requise'}</p>
+                          <p className="opacity-90 font-medium">"{application.admin_feedback}"</p>
                         </div>
-                        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                          <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">{t('academic_average') || "Moyenne"}</p>
-                          <p className="font-bold text-lg text-emerald-700">{parseFloat(application.grade_average).toFixed(2)} / 20</p>
-                        </div>
-                        <div className="col-span-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('major_specialty') || "Filière"}</p>
-                          <p className="font-bold text-lg text-slate-900">{application.filière || application.filiere}</p>
-                        </div>
-                      </div>
+                      </motion.div>
+                    )}
 
-                      <div className="pt-6 border-t border-slate-100 flex flex-wrap gap-3">
-                        {application.status === 'approved' && (
-                          <button onClick={handleDownloadPDF} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold transition-colors shadow-md shadow-green-500/20">
-                            <Download size={18} /> {t('download_attestation') || "Télécharger l'Attestation"}
+                    {application.status === 'awaiting_receipt' && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        className="p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/30 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between"
+                      >
+                        <div className="space-y-1.5 flex-1">
+                          <p className="font-black text-indigo-900 dark:text-indigo-400 flex items-center gap-2 text-base">
+                            <Receipt size={20} /> Reçu d'inscription exigé
+                          </p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                            Votre demande a été approuvée sous réserve d'inscription. Veuillez scanner ou importer votre reçu de paiement des frais d'internat (150 MAD) pour valider votre affectation définitive.
+                          </p>
+                        </div>
+                        
+                        <div className="w-full md:w-auto flex flex-col gap-3 flex-shrink-0">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => setReceiptFile(e.target.files[0])}
+                            className="hidden" 
+                            id="receipt-scan" 
+                          />
+                          <input 
+                            type="file" 
+                            accept="image/*,.pdf" 
+                            onChange={(e) => setReceiptFile(e.target.files[0])}
+                            className="hidden" 
+                            id="receipt-upload" 
+                          />
+                          
+                          {receiptFile ? (
+                            <div className="flex items-center justify-between gap-3 py-2.5 px-4 border border-indigo-200 dark:border-indigo-850 rounded-xl bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 text-xs font-bold w-full md:w-56">
+                              <span className="truncate max-w-[130px]">{receiptFile.name}</span>
+                              <button type="button" onClick={() => setReceiptFile(null)} className="text-red-500 hover:text-red-700 cursor-pointer">
+                                <XCircle size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <label htmlFor="receipt-scan" className="px-4 py-2.5 border border-indigo-200 dark:border-indigo-900/40 bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-750 dark:text-indigo-300 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm m-0">
+                                <Camera size={14} /> Scanner
+                              </label>
+                              <label htmlFor="receipt-upload" className="px-4 py-2.5 border border-indigo-200 dark:border-indigo-900/40 bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-750 dark:text-indigo-300 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm m-0">
+                                <Upload size={14} /> Importer
+                              </label>
+                            </div>
+                          )}
+                          
+                          <button 
+                            onClick={handleUploadReceipt}
+                            disabled={!receiptFile || uploadingReceipt}
+                            className="btn btn-primary btn-sm rounded-xl py-2.5 w-full font-bold shadow-md"
+                          >
+                            {uploadingReceipt ? 'Envoi...' : 'Valider mon Reçu'}
                           </button>
-                        )}
-                        {['pending', 'rejected', 'incomplete'].includes(application.status) && (
-                          <Link to="/apply?edit=true" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors">
-                            <Edit3 size={18} /> {application.status === 'rejected' ? t('reapply') : t('edit_application')}
-                          </Link>
-                        )}
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Academic info grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-900/60">
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('student_type_label') || "Type"}</p>
+                        <p className="font-extrabold text-sm text-slate-900 dark:text-white">{application.student_type}</p>
+                      </div>
+                      <div className="p-4 bg-emerald-500/5 dark:bg-emerald-950/10 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/20">
+                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">{t('academic_average') || "Moyenne"}</p>
+                        <p className="font-extrabold text-sm text-emerald-700 dark:text-emerald-400">{parseFloat(application.grade_average).toFixed(2)} / 20</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-900/60">
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('major_specialty') || "Filière"}</p>
+                        <p className="font-extrabold text-sm text-slate-900 dark:text-white truncate" title={application.filière || application.filiere}>{application.filière || application.filiere}</p>
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    <div className="pt-4 border-t border-slate-150 dark:border-slate-800 flex flex-wrap gap-3">
+                      {application.status === 'approved' && (
+                        <button onClick={handleDownloadPDF} className="btn btn-primary shadow-lg flex items-center gap-2">
+                          <Download size={16} /> {t('download_attestation') || "Télécharger l'Attestation"}
+                        </button>
+                      )}
+                      {['pending', 'rejected', 'incomplete'].includes(application.status) && (
+                        <Link to="/apply?edit=true" className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-sm">
+                          <Edit3 size={16} /> {application.status === 'rejected' ? t('reapply') : t('edit_application')}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
               </motion.div>
 
-              {/* Decision History */}
-              {application?.history?.length > 0 && (
-                <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-                    <Clock size={18} className="text-indigo-600" />
-                    <h3 className="font-bold text-slate-900">{t('decision_history') || 'Historique'}</h3>
-                  </div>
-                  <div className="p-6 sm:p-8">
-                    <div className="space-y-4">
-                      {application.history.map((h, i) => (
-                        <div key={h.id} className={`flex gap-4 ${i !== application.history.length - 1 ? 'relative' : ''}`}>
-                          {i !== application.history.length - 1 && (
-                            <div className="absolute left-2.5 top-8 bottom-[-16px] w-0.5 bg-slate-100" />
-                          )}
-                          <div className={`w-5 h-5 rounded-full mt-1.5 flex-shrink-0 z-10 border-4 border-white shadow-sm ${i === 0 ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'}`} />
-                          <div className="bg-slate-50 p-4 rounded-2xl flex-1 border border-slate-100 hover:border-slate-200 transition-colors">
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="font-bold text-slate-900 capitalize">{h.status === 'approved' ? 'Approuvée' : h.status}</span>
-                              <span className="text-xs font-semibold text-slate-400">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
-                            </div>
-                            {h.comment && <p className="text-sm text-slate-500 italic mt-2">"{h.comment}"</p>}
-                          </div>
-                        </div>
-                      ))}
+              {/* Room Assignment Widget with Roommate Visualizer */}
+              {application?.status === 'approved' && (
+                <motion.div variants={itemVariants} className="card glow-card">
+                  {application.room ? (
+                    <VisualRoomMap 
+                      room={application.room} 
+                      profile={profile} 
+                      application={application} 
+                    />
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <DoorOpen size={32} />
+                      </div>
+                      <h4 className="font-black text-slate-900 dark:text-white text-base mb-1">Affectation en cours</h4>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
+                        Votre dossier est approuvé ! L'administration est en train de configurer et d'affecter votre chambre définitive. Revenez très bientôt.
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </motion.div>
               )}
 
-              {/* Reclamations Section */}
-              <motion.div variants={itemVariants}>
+              {/* Support Reclamations Section */}
+              <motion.div variants={itemVariants} className="card glow-card p-0 overflow-visible border-none bg-transparent shadow-none">
                 <StudentReclamations />
               </motion.div>
 
             </div>
 
-            {/* Right Column (Sidebar) */}
+            {/* Right Column (Sidebar Bento Grid) */}
             <div className="flex flex-col gap-6">
 
-              {/* Room Assignment */}
-              {application?.status === 'approved' && (
-                <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-green-200 shadow-sm overflow-hidden relative">
-                  {/* Decorative shine */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 blur-2xl rounded-full pointer-events-none" />
-                  
-                  <div className="px-6 py-4 border-b border-green-100 bg-green-50/50 flex items-center gap-2">
-                    <DoorOpen size={18} className="text-green-600" />
-                    <h3 className="font-bold text-slate-900">{t('room_assignment')}</h3>
-                  </div>
-                  <div className="p-6 text-center">
-                    {application.room ? (
-                      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }}>
-                        <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4 ring-8 ring-green-50">
-                          <CheckCircle size={32} />
-                        </div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('your_room') || 'Votre Chambre'}</p>
-                        <p className="text-5xl font-black text-green-500 my-2 tracking-tighter">{application.room.room_number}</p>
-                        <span className="inline-block px-4 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">{t('assignment_validated') || 'Validée'}</span>
-                      </motion.div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4 ring-8 ring-slate-50">
-                          <Clock size={32} />
-                        </div>
-                        <p className="text-slate-600 font-medium">Votre chambre est en cours d'affectation par l'administration.</p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Profile Card */}
-              <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              {/* Profile Passport Card */}
+              <motion.div variants={itemVariants} className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-xl border border-white/10 p-6 glow-card">
+                {/* Decorative overlay mesh */}
+                <div className="absolute top-[-50%] right-[-50%] w-[250px] h-[250px] bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+                
+                {/* Passport Header */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
                   <div className="flex items-center gap-2">
-                    <User size={18} className="text-slate-500" />
-                    <h3 className="font-bold text-slate-900">{t('my_profile') || 'Mon Profil'}</h3>
+                    <GraduationCap className="text-emerald-400" size={20} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Student Passport</span>
                   </div>
                   {!editingProfile && profile && (
-                    <button onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }}
-                      className="text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => { setProfileForm({ phone: profile.phone || '', address: profile.address || '', city: profile.city || '' }); setEditingProfile(true); }}
+                      className="text-[10px] font-black text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/20 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
                       Modifier
                     </button>
                   )}
                 </div>
-                <div className="p-6">
-                  {editingProfile ? (
-                    <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleProfileUpdate} className="space-y-4">
-                      <div className="form-group"><label className="form-label">{t('phone') || 'Téléphone'}</label><input className="form-input py-2" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} /></div>
-                      <div className="form-group"><label className="form-label">Adresse</label><input className="form-input py-2" value={profileForm.address} onChange={e => setProfileForm({ ...profileForm, address: e.target.value })} /></div>
-                      <div className="form-group"><label className="form-label">Ville</label><input className="form-input py-2" value={profileForm.city} onChange={e => setProfileForm({ ...profileForm, city: e.target.value })} /></div>
-                      <div className="flex gap-2 pt-2">
-                        <button type="button" onClick={() => setEditingProfile(false)} className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Annuler</button>
-                        <button type="submit" disabled={profileSaving} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700">{profileSaving ? '...' : 'Enregistrer'}</button>
+
+                {editingProfile ? (
+                  <form onSubmit={handleProfileUpdate} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Téléphone</label>
+                      <input className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Adresse</label>
+                      <input className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500" value={profileForm.address} onChange={e => setProfileForm({ ...profileForm, address: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ville</label>
+                      <input className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500" value={profileForm.city} onChange={e => setProfileForm({ ...profileForm, city: e.target.value })} />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button type="button" onClick={() => setEditingProfile(false)} className="flex-1 py-1.5 rounded-lg border border-white/10 text-slate-350 hover:bg-white/5 font-bold text-[10px]">Annuler</button>
+                      <button type="submit" disabled={profileSaving} className="flex-1 py-1.5 rounded-lg bg-emerald-500 text-white font-bold text-[10px] hover:bg-emerald-600">{profileSaving ? 'Envoi...' : 'Enregistrer'}</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-6">
+                    {/* User profile layout */}
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-white font-black text-lg">
+                        {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'ET'}
                       </div>
-                    </motion.form>
-                  ) : (
-                    <div className="space-y-5">
+                      <div className="min-w-0">
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Nom Complet</p>
+                        <h4 className="text-white font-black text-base truncate m-0">{profile?.full_name || 'Chargement...'}</h4>
+                        <p className="text-slate-500 text-[10px] mt-0.5 truncate">{profile?.cin || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 border-t border-white/5 pt-4">
                       {[
-                        { icon: User, label: t('full_name') || 'Nom', value: profile?.full_name },
-                        { icon: Phone, label: t('phone') || 'Téléphone', value: profile?.phone || t('not_provided') },
-                        { icon: MapPin, label: t('city_province') || 'Ville', value: `${profile?.city || ''} / ${profile?.province || ''}` },
+                        { icon: Phone, label: t('phone') || 'Téléphone', value: profile?.phone },
+                        { icon: MapPin, label: t('city_province') || 'Ville', value: profile?.city ? `${profile.city} / ${profile.province || ''}` : 'N/A' }
                       ].map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
-                          <div className="p-2 bg-slate-50 rounded-xl text-slate-400 shrink-0 border border-slate-100">
-                            <item.icon size={16} />
-                          </div>
-                          <div>
-                            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">{item.label}</p>
-                            <p className="font-bold text-slate-900 text-sm sm:text-base">{item.value}</p>
+                        <div key={idx} className="flex gap-3 items-start">
+                          <item.icon size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">{item.label}</span>
+                            <span className="text-slate-200 text-xs font-bold block truncate mt-0.5">{item.value || t('not_provided')}</span>
                           </div>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </motion.div>
 
+              {/* Decision / Status History Card */}
+              {application?.history?.length > 0 && (
+                <motion.div variants={itemVariants} className="card glow-card">
+                  <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/60 pb-3 mb-4">
+                    <Clock size={16} className="text-indigo-500" />
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">Historique de Décision</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {application.history.map((h, i) => (
+                      <div key={h.id} className="relative flex gap-3">
+                        {i !== application.history.length - 1 && (
+                          <div className="absolute left-1.5 top-6 bottom-[-16px] w-0.5 bg-slate-100 dark:bg-slate-800" />
+                        )}
+                        <div className={`w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 z-10 border-2 border-white dark:border-slate-900 shadow-sm ${i === 0 ? 'bg-emerald-500 ring-2 ring-emerald-500/10' : 'bg-slate-350 dark:bg-slate-700'}`} />
+                        <div className="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl flex-1 border border-slate-100 dark:border-slate-900/60">
+                          <div className="flex justify-between items-center mb-0.5">
+                            <span className="font-extrabold text-slate-900 dark:text-white text-xs capitalize">{h.status === 'approved' ? 'Approuvé' : h.status}</span>
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-gray-500">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                          </div>
+                          {h.comment && <p className="text-[10px] text-slate-500 dark:text-slate-450 italic mt-1.5">"{h.comment}"</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
+              {/* Fast Help Card */}
+              <motion.div variants={itemVariants} className="p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30">
+                <div className="flex gap-3">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
+                    <Contact size={18} />
+                  </div>
+                  <div>
+                    <h5 className="font-extrabold text-slate-900 dark:text-white text-sm mb-1">Assistance Technique</h5>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed mb-3">Besoin d'aide pour votre dossier ou l'internat ? Soumettez une réclamation dans la section dédiée pour discuter avec l'administration.</p>
+                  </div>
+                </div>
+              </motion.div>
 
             </div>
           </motion.div>
         )}
       </div>
 
-      {/* PDF Template (Off-screen) */}
+      {/* PDF Template (Off-screen, kept intact for download function) */}
       <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', zIndex: -9999 }}>
         <div id="attestation-pdf-template" className="p-16 w-[800px]" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
           <div className="flex justify-between items-center border-b-4 pb-8 mb-12" style={{ borderColor: '#1e293b' }}>
@@ -518,8 +535,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
-
 
     </div>
   );

@@ -41,8 +41,8 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, default=UserRole.STUDENT)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    profile = relationship("Profile", back_populates="user", uselist=False)
-    applications = relationship("Application", back_populates="user")
+    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    applications = relationship("Application", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 class Profile(Base):
@@ -85,7 +85,7 @@ class Application(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="applications")
-    documents = relationship("Document", back_populates="application")
+    documents = relationship("Document", back_populates="application", cascade="all, delete-orphan")
     room = relationship("Room", back_populates="applications")
     history = relationship("StatusHistory", back_populates="application", cascade="all, delete-orphan")
 

@@ -4,8 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from .routers import auth, applications, admin, rooms, notifications, chat, payment, tickets
 from .models.database import engine, Base
 
-# Create tables automatically on startup
-Base.metadata.create_all(bind=engine)
+import sys
+
+# Create tables automatically on startup (unless running tests)
+if "pytest" not in sys.modules:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Internat Admission System API",

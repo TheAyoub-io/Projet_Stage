@@ -19,6 +19,7 @@ VALID_PAYLOAD = {
     "address": "Rue Hassan II",
     "city": "Beni Mellal",
     "province": "Beni Mellal",
+    "gender": "Male",
     "student_type": "CPGE",
     "filière": "MPSI",
     "grade_average": "17.50",
